@@ -1,6 +1,8 @@
 use crate::poly::*;
 use ark_bn254::Fr as ScalarField;
 
+use ark_poly::Polynomial;
+
 // #[derive(Debug, PartialEq, Clone)]
 // struct BaseLayer {
 //     k: usize,
