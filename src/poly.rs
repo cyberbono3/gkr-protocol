@@ -5,10 +5,21 @@ use ark_ff::Zero;
 
 use ark_bn254::Fr as ScalarField;
 use ark_poly::polynomial::multivariate::{SparsePolynomial, SparseTerm, Term};
+use ark_poly::polynomial::univariate::SparsePolynomial as UniSparsePolynomial;
 use ark_poly::DenseMVPolynomial;
 
 pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;
+pub type UniPoly = UniSparsePolynomial<ScalarField>;
 
+// Converts i into an index in {0,1}^k
+pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
+    format!("{:0k$b}", i, k = k)
+        .chars()
+        .map(|x| if x == '1' { 1.into() } else { 0.into() })
+        .collect()
+}
+
+// TODO add Poly wrapper and update API
 pub fn mult_poly(p1: &MultiPoly, p2: &MultiPoly) -> MultiPoly {
     let p1_terms = p1.terms();
     let p2_terms = p2.terms();
@@ -152,4 +163,33 @@ pub fn multilinear_polynomial_from_evals(
     }
     let input: Vec<Chars> = binary_inputs.iter().map(|s| s.chars()).collect();
     polynomial_from_binary(input, evals)
+}
+
+
+pub fn restrict_poly_to_line(p: MultiPoly, line: &[UniPoly]) -> UniPoly {
+    let mut restricted_poly = UniPoly::zero();
+    for (unit, term) in p.terms() {
+        let variables: Vec<_> = (*term).to_vec();
+        let mut term_poly = UniPoly::from_coefficients_slice(&[(0, *unit)]);
+        for (var, power) in variables {
+            let mut var_poly = line[var].clone();
+            for _ in 0..(power - 1) {
+                var_poly = var_poly.mul(&var_poly)
+            }
+            term_poly = term_poly.mul(&var_poly);
+        }
+        restricted_poly = restricted_poly + term_poly;
+    }
+    restricted_poly
+}
+
+pub fn unique_univariate_line(b: &[ScalarField], c: &[ScalarField]) -> Vec<UniPoly> {
+    let mut lines = vec![];
+    for (b_i, c_i) in b.iter().zip(c) {
+        lines.push(UniPoly::from_coefficients_slice(&[
+            (0, *b_i),
+            (1, c_i - b_i),
+        ]));
+    }
+    lines
 }

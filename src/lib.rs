@@ -15,5 +15,6 @@ mod tests {
 
 pub mod graph;
 pub mod poly;
+pub mod gkr;
 
 // TODO add tests and benches
