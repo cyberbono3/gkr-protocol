@@ -2,14 +2,11 @@ use std::cmp::max;
 
 use ark_ff::Zero;
 
-use ark_poly::DenseMVPolynomial;
 use ark_bn254::Fr as ScalarField;
 use ark_poly::polynomial::multivariate::{SparsePolynomial, SparseTerm, Term};
-
+use ark_poly::DenseMVPolynomial;
 
 pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;
-
-
 
 pub fn mult_poly(p1: &MultiPoly, p2: &MultiPoly) -> MultiPoly {
     let p1_terms = p1.terms();
@@ -84,5 +81,3 @@ pub fn sum_last_k_var(p: &MultiPoly, k: usize) -> MultiPoly {
     }
     MultiPoly::from_coefficients_vec(new_num_vars, new_coefficients)
 }
-
-

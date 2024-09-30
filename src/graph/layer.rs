@@ -19,7 +19,7 @@ use ark_poly::Polynomial;
 //             k,
 //             prev_k,
 //             add,
-//             mult, 
+//             mult,
 //             w_b,
 //             w_c
 //         }
@@ -31,10 +31,10 @@ pub enum Layer {
     OutputLayer {
         k: usize,
         prev_k: usize,
-    add: MultiPoly,
-    mult: MultiPoly,
-    w_b: MultiPoly,
-    w_c: MultiPoly,
+        add: MultiPoly,
+        mult: MultiPoly,
+        w_b: MultiPoly,
+        w_c: MultiPoly,
         d: MultiPoly,
     },
     InterLayer {
@@ -59,7 +59,6 @@ impl Layer {
             Self::InterLayer { .. } => panic!(),
         }
     }
-
 
     pub fn w_ext_gate_eval(&self, r: &Vec<ScalarField>) -> MultiPoly {
         match self {
@@ -87,8 +86,6 @@ impl Layer {
             }
         }
     }
-
-    
 
     pub fn w_ext(&self) -> MultiPoly {
         match self {
