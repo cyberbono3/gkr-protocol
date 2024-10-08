@@ -52,6 +52,32 @@ impl MVPoly {
         Self::new(MultiPoly::from_coefficients_vec(new_num_vars, new_coefficients))
     }
 
+    pub fn sum_last_k_var(&self, k: usize) -> Self {
+        if self.0.is_zero() {
+            Self::new(self.0.clone());
+        }
+        let terms = &self.0.terms;
+        let mut new_coefficients = Vec::with_capacity(terms.len());
+        let new_num_vars = self.0.num_vars() - k;
+        for (unit, term) in terms {
+            let mut new_term = Vec::with_capacity(term.len());
+            let mut num_reduced_terms = 0;
+            for (var, power) in (*term).iter() {
+                if (self.0.num_vars() - var) <= k {
+                    num_reduced_terms += 1;
+                } else {
+                    new_term.push((*var, *power));
+                }
+            }
+            let mut new_unit = *unit;
+            for _ in 0..2_i32.pow((k - num_reduced_terms) as u32) {
+                new_unit += unit;
+            }
+            new_coefficients.push((new_unit, SparseTerm::new(new_term)));
+        }
+        Self::new(MultiPoly::from_coefficients_vec(new_num_vars, new_coefficients))
+    }
+
 }
 
 impl Mul for MVPoly {
@@ -310,7 +336,7 @@ mod tests {
         assert_eq!(result, expected);
     }
 
-    
+
     #[test]
     fn test_neg_shift_poly_by_k_basic() {
         // Polynomial: x^1 + y^1
@@ -384,5 +410,80 @@ mod tests {
         ]));
 
         assert_eq!(evaluation, expected);
+    }
+
+    #[test]
+    fn test_sum_last_k_var_basic() {
+        // Polynomial: x^1 + y^1 + z^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(3, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)])),  // y term
+            (ScalarField::one(), SparseTerm::new(vec![(2, 1)]))   // z term
+        ]));
+
+        // Sum last 1 variable (z)
+        let summed_poly = poly.sum_last_k_var(1);
+
+        // Expected result: x^1 + y^1 with z summed out
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one() + ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term with summed z
+            (ScalarField::one() + ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term with summed z
+        ]));
+
+        assert_eq!(summed_poly, expected);
+    }
+
+    #[test]
+    fn test_sum_last_k_var_no_var() {
+        // Polynomial: x^1 + y^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+
+        // Sum last 0 variable (no summing)
+        let summed_poly = poly.sum_last_k_var(0);
+
+        // Expected result: same as original
+        let expected = poly.clone();
+
+        assert_eq!(summed_poly, expected);
+    }
+
+    #[test]
+    fn test_sum_last_k_var_large_k() {
+        // Polynomial: x^1 + y^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+
+        // Sum last 3 variables (larger than number of variables)
+        let summed_poly = poly.sum_last_k_var(3);
+
+        // Expected result: empty polynomial (all variables summed out)
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(0, vec![]));
+
+        assert_eq!(summed_poly, expected);
+    }
+
+    #[test]
+    fn test_sum_last_k_var_partial() {
+        // Polynomial: x^1 + y^1 + z^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(3, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)])),  // y term
+            (ScalarField::one(), SparseTerm::new(vec![(2, 1)]))   // z term
+        ]));
+
+        // Sum last 2 variables (y and z)
+        let summed_poly = poly.sum_last_k_var(2);
+
+        // Expected result: just x^1, y and z summed out
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(1, vec![
+            (ScalarField::from(2u32), SparseTerm::new(vec![(0, 1)]))  // x term with y and z summed out
+        ]));
+
+        assert_eq!(summed_poly, expected);
     }
 }
