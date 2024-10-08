@@ -11,6 +11,7 @@ use ark_poly::DenseMVPolynomial;
 
 pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;
 
+// TODO rename MVPoly to MLPoly
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MVPoly(pub MultiPoly);
 impl MVPoly {
@@ -78,6 +79,34 @@ impl MVPoly {
         Self::new(MultiPoly::from_coefficients_vec(new_num_vars, new_coefficients))
     }
 
+    pub fn shift_poly_by_k(&self, k: usize) -> Self {
+        let terms = &self.0.terms;
+        let current_num_vars = self.0.num_vars;
+        let mut shifted_terms = vec![];
+        for (unit, term) in terms {
+            let shifted_term = SparseTerm::new((*term).iter().map(|c| (c.0 + k, c.1)).collect());
+            shifted_terms.push((*unit, shifted_term));
+        }
+        Self::new(MultiPoly::from_coefficients_vec(current_num_vars + k, shifted_terms))
+    }
+
+    pub fn restrict_poly_to_line(&self, line: &[UniPoly]) -> UniPoly {
+        let mut restricted_poly = UniPoly::zero();
+        for (unit, term) in &self.0.terms {
+            let variables: Vec<_> = (*term).to_vec();
+            let mut term_poly = UniPoly::from_coefficients_slice(&[(0, *unit)]);
+            for (var, power) in variables {
+                let mut var_poly = line[var].clone();
+                for _ in 0..(power - 1) {
+                    var_poly = var_poly.mul(&var_poly)
+                }
+                term_poly = term_poly.mul(&var_poly);
+            }
+            restricted_poly = restricted_poly + term_poly;
+        }
+        restricted_poly
+    }
+    
 }
 
 impl Mul for MVPoly {
@@ -103,8 +132,8 @@ pub struct Binary<'a> {
 }
 
 impl<'a> Binary<'a> {
-    pub fn new(input_strings: Vec<&'a str>, evals: Vec<ScalarField>) -> Self {
-        let inputs: Vec<Chars<'a>> = input_strings.into_iter().map(|s| s.chars()).collect();
+    pub fn new(inputs: Vec<Chars<'a>>, evals: Vec<ScalarField>) -> Self {
+        //let inputs: Vec<Chars<'a>> = input_strings.into_iter().map(|s| s.chars()).collect();
         Self { inputs, evals }
     }
 }
@@ -155,13 +184,45 @@ impl<'a> From<Binary<'a>> for MVPoly {
     }
 }
 
+pub struct Input {
+    inputs: Vec<usize>,
+    evals: Vec<ScalarField>,
+}
 
+impl From<Input> for MVPoly {
+    fn from(input: Input) -> Self {
+        let chars_vec: Vec<Chars> = input.inputs
+        .iter()
+        .map(|curr| {
+            let s = format!("{:0k$b}", curr, k = k);
+            s.chars()
+
+        }).collect();
+        let binary = Binary::new(chars_vec, input.evals);
+        binary.into()
+    }
+}
+// pub fn multilinear_polynomial_from_evals(
+//     inputs: Vec<usize>,
+//     evals: Vec<ScalarField>,
+//     k: usize,
+// ) -> MultiPoly {
+//     let mut binary_inputs = vec![];
+//     for curr in inputs {
+//         // index of current node in layer as a binary string
+//         let curr_string = format!("{:0k$b}", curr, k = k);
+//         binary_inputs.push(curr_string);
+//     }
+//     let input: Vec<Chars> = binary_inputs.iter().map(|s| s.chars()).collect();
+//     polynomial_from_binary(input, evals)
+// }
 
 
 pub type UniPoly = UniSparsePolynomial<ScalarField>;
 pub struct UVPoly(pub UniPoly);
 
 
+// TODO to make a from trait 
 // Converts i into an index in {0,1}^k
 pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
     format!("{:0k$b}", i, k = k)
@@ -619,4 +680,61 @@ mod tests {
 
         assert_eq!(mvpoly, expected);
     }
+
+    #[test]
+    fn test_shift_poly_by_k_basic() {
+        // Polynomial: x^1 + y^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+
+        // Shift by k=1
+        let shifted_poly = poly.shift_poly_by_k(1);
+
+        // Expected result: x^1 -> z^1, y^1 -> (z+1)^1
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(3, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)])),  // shifted x term
+            (ScalarField::one(), SparseTerm::new(vec![(2, 1)]))   // shifted y term
+        ]));
+
+        assert_eq!(shifted_poly, expected);
+    }
+
+    #[test]
+    fn test_shift_poly_by_k_large_shift() {
+        // Polynomial: x^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(1, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+        ]));
+
+        // Shift by k=3
+        let shifted_poly = poly.shift_poly_by_k(3);
+
+        // Expected result: x^1 -> (z+3)^1
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(4, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(3, 1)])),  // shifted x term
+        ]));
+
+        assert_eq!(shifted_poly, expected);
+    }
+
+    #[test]
+    fn test_shift_poly_by_k_zero_shift() {
+        // Polynomial: x^1 + y^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+
+        // Shift by k=0 (no shift)
+        let shifted_poly = poly.shift_poly_by_k(0);
+
+        // Expected result: same as original
+        let expected = poly.clone();
+
+        assert_eq!(shifted_poly, expected);
+    }
+
+    // TODO Add tests restrict_poly_to_line
 }
