@@ -83,18 +83,75 @@ impl MVPoly {
 impl Mul for MVPoly {
     type Output = Self;
     fn mul(self, other: Self) -> Self::Output {
-        let p1_terms = self.0.terms();
-        let p2_terms = other.0.terms();
-        let num_vars = max(self.0.num_vars(), other.0.num_vars());
-        let mut mult_terms = vec![];
-        for (unit_1, term_1) in p1_terms {
-            for (unit_2, term_2) in p2_terms {
+        let p1_terms = self.0.terms;
+        let p2_terms = other.0.terms;
+        let num_vars = max(self.0.num_vars, other.0.num_vars);
+        let mut mult_terms = Vec::with_capacity(p1_terms.len() * p2_terms.len());
+        for (unit_1, term_1) in &p1_terms {
+            for (unit_2, term_2) in &p2_terms {
                 let mut mult_term: Vec<_> = (*term_1).to_vec();
                 mult_term.append(&mut term_2.to_vec());
                 mult_terms.push((unit_1 * unit_2, SparseTerm::new(mult_term)));
             }
         }
         MVPoly::new(MultiPoly::from_coefficients_vec(num_vars, mult_terms))
+    }
+}
+pub struct Binary<'a> {
+    inputs: Vec<Chars<'a>>,
+    evals: Vec<ScalarField>,
+}
+
+impl<'a> Binary<'a> {
+    pub fn new(input_strings: Vec<&'a str>, evals: Vec<ScalarField>) -> Self {
+        let inputs: Vec<Chars<'a>> = input_strings.into_iter().map(|s| s.chars()).collect();
+        Self { inputs, evals }
+    }
+}
+
+impl<'a> From<Binary<'a>> for MVPoly {
+    fn from(binary: Binary<'a>) -> Self {
+        let mut terms: Vec<(ScalarField, SparseTerm)> = vec![];
+        let num_vars = binary.inputs.iter().map(|c| c.clone().count()).max().unwrap();
+        // let mut offset = 0;
+        for (input, unit) in binary.inputs.iter().zip(binary.evals) {
+            let mut current_term: Vec<(ScalarField, SparseTerm)> = vec![];
+            for (idx, char) in input.clone().enumerate() {
+                // x_i
+                if char == '1' {
+                    if current_term.len() == 0 {
+                        current_term.append(&mut vec![(unit, SparseTerm::new(vec![(idx, 1)]))])
+                    } else {
+                        for term in &mut current_term {
+                            let mut coeffs = (*term.1.clone()).to_vec();
+                            coeffs.push((idx, 1));
+                            term.1 = SparseTerm::new(coeffs);
+                        }
+                    }
+                }
+                // 1 - x_i
+                else if char == '0' {
+                    if current_term.len() == 0 {
+                        current_term.append(&mut vec![
+                            (unit, SparseTerm::new(vec![])),
+                            (-unit, SparseTerm::new(vec![(idx, 1)])),
+                        ])
+                    } else {
+                        //  we check the original terms but push a new set of terms multiplied by -x_i
+                        let mut new_terms = vec![];
+                        for term in &current_term {
+                            let mut coeffs = (*term.1.clone()).to_vec();
+                            coeffs.push((idx, 1));
+                            new_terms.push((-term.0, SparseTerm::new(coeffs)));
+                        }
+                        current_term.append(&mut new_terms);
+                    }
+                }
+            }
+            terms.append(&mut current_term)
+        }
+    
+        Self::new(MultiPoly::from_coefficients_vec(num_vars, terms))
     }
 }
 
@@ -485,5 +542,81 @@ mod tests {
         ]));
 
         assert_eq!(summed_poly, expected);
+    }
+
+    #[test]
+    fn test_binary_to_mvpoly_single_input() {
+        // Binary: input "10", eval 1
+        let inputs = vec!["10".chars()];
+        let evals = vec![ScalarField::one()];
+        let binary = Binary { inputs, evals };
+
+        // Expected polynomial: 1 * (x_0 * (1 - x_1))
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),
+            (-ScalarField::one(), SparseTerm::new(vec![(0, 1), (1, 1)])),
+        ]));
+
+        let mvpoly = MVPoly::from(binary);
+
+        assert_eq!(mvpoly, expected);
+    }
+
+    #[test]
+    fn test_binary_to_mvpoly_multiple_inputs() {
+        // Binary: inputs "10", "01", evals 1, -1
+        let inputs = vec!["10".chars(), "01".chars()];
+        let evals = vec![ScalarField::one(), -ScalarField::one()];
+        let binary = Binary { inputs, evals };
+
+        // Expected polynomial: 
+        // 1 * (x_0 * (1 - x_1)) + (-1) * ((1 - x_0) * x_1)
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),
+            (-ScalarField::one(), SparseTerm::new(vec![(0, 1), (1, 1)])),
+            (-ScalarField::one(), SparseTerm::new(vec![(1, 1)])),
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1), (1, 1)])),
+        ]));
+
+        let mvpoly = MVPoly::from(binary);
+
+        assert_eq!(mvpoly, expected);
+    }
+
+    #[test]
+    fn test_binary_to_mvpoly_all_zeros() {
+        // Binary: input "00", eval 1
+        let inputs = vec!["00".chars()];
+        let evals = vec![ScalarField::one()];
+        let binary = Binary { inputs, evals };
+
+        // Expected polynomial: 1 * (1 - x_0) * (1 - x_1)
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![])),
+            (-ScalarField::one(), SparseTerm::new(vec![(0, 1)])),
+            (-ScalarField::one(), SparseTerm::new(vec![(1, 1)])),
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1), (1, 1)])),
+        ]));
+
+        let mvpoly = MVPoly::from(binary);
+
+        assert_eq!(mvpoly, expected);
+    }
+
+    #[test]
+    fn test_binary_to_mvpoly_all_ones() {
+        // Binary: input "11", eval 1
+        let inputs = vec!["11".chars()];
+        let evals = vec![ScalarField::one()];
+        let binary = Binary { inputs, evals };
+
+        // Expected polynomial: 1 * (x_0 * x_1)
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1), (1, 1)])),
+        ]));
+
+        let mvpoly = MVPoly::from(binary);
+
+        assert_eq!(mvpoly, expected);
     }
 }
