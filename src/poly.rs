@@ -1,5 +1,6 @@
 use core::str::Chars;
 use std::cmp::max;
+use std::ops::Mul;
 
 use ark_ff::Zero;
 
@@ -9,7 +10,74 @@ use ark_poly::polynomial::univariate::SparsePolynomial as UniSparsePolynomial;
 use ark_poly::DenseMVPolynomial;
 
 pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MVPoly(pub MultiPoly);
+impl MVPoly {
+    pub fn new(multi_poly: MultiPoly) -> Self {
+        Self(multi_poly)
+    }
+
+    pub fn neg_shift_poly_by_k(&self, k: usize) -> Self {
+        let terms = &self.0.terms;
+        let current_num_vars = self.0.num_vars;
+        let mut shifted_terms = Vec::with_capacity(terms.len());
+        for (unit, term) in terms {
+            let shifted_term = SparseTerm::new((*term).iter().map(|&c| (c.0 - k, c.1)).collect());
+            shifted_terms.push((*unit, shifted_term));
+        }
+        Self(MultiPoly::from_coefficients_vec(current_num_vars - k, shifted_terms))
+    }
+
+    pub fn evaluate_variable(&self, r: &Vec<ScalarField>) -> Self {
+        if self.0.is_zero() {
+            return Self(self.0.clone());
+        }
+        let mut new_coefficients = Vec::with_capacity(self.0.terms.len());
+        let new_num_vars = self.0.num_vars;
+        for (unit, term) in &self.0.terms {
+            let mut new_unit = *unit;
+            let mut new_term = vec![];
+            for (var, power) in (*term).iter() {
+                if var < &r.len() {
+                    for _ in 0..*power {
+                        new_unit = new_unit * r[*var];
+                    }
+                } else {
+                    new_term.push((*var, *power));
+                }
+            }
+            new_coefficients.push((new_unit, SparseTerm::new(new_term)));
+        }
+        Self::new(MultiPoly::from_coefficients_vec(new_num_vars, new_coefficients))
+    }
+
+}
+
+impl Mul for MVPoly {
+    type Output = Self;
+    fn mul(self, other: Self) -> Self::Output {
+        let p1_terms = self.0.terms();
+        let p2_terms = other.0.terms();
+        let num_vars = max(self.0.num_vars(), other.0.num_vars());
+        let mut mult_terms = vec![];
+        for (unit_1, term_1) in p1_terms {
+            for (unit_2, term_2) in p2_terms {
+                let mut mult_term: Vec<_> = (*term_1).to_vec();
+                mult_term.append(&mut term_2.to_vec());
+                mult_terms.push((unit_1 * unit_2, SparseTerm::new(mult_term)));
+            }
+        }
+        MVPoly::new(MultiPoly::from_coefficients_vec(num_vars, mult_terms))
+    }
+}
+
+
+
+
 pub type UniPoly = UniSparsePolynomial<ScalarField>;
+pub struct UVPoly(pub UniPoly);
+
 
 // Converts i into an index in {0,1}^k
 pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
@@ -192,4 +260,129 @@ pub fn unique_univariate_line(b: &[ScalarField], c: &[ScalarField]) -> Vec<UniPo
         ]));
     }
     lines
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_ff::One;
+    use ark_bn254::Fr as ScalarField;
+    use ark_poly::polynomial::multivariate::SparseTerm;
+
+    #[test]
+    fn test_mul_basic_case() {
+        // Create two multivariate polynomials
+        let poly1 = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+        
+        let poly2 = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+
+        let result = poly1 * poly2;
+        
+        // Expected result should be polynomial multiplication output
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 2)])),  // x^2 term
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1), (1, 1)])), // xy term
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1), (1, 1)])), // xy term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 2)]))   // y^2 term
+        ]));
+        
+        assert_eq!(result, expected);
+    }
+    
+    #[test]
+    fn test_mul_zero() {
+        // Multiply a polynomial by zero
+        let poly1 = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)]))
+        ]));
+        
+        let zero_poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![]));
+        
+        let result = poly1 * zero_poly;
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![]));
+        
+        assert_eq!(result, expected);
+    }
+
+    
+    #[test]
+    fn test_neg_shift_poly_by_k_basic() {
+        // Polynomial: x^1 + y^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+
+        // Shift by k=1
+        let shifted_poly = poly.neg_shift_poly_by_k(1);
+
+        // Expected result after shift by k=1: just x^1 (the y term shifts out)
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(1, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)]))   // x term after shift
+        ]));
+        
+        assert_eq!(shifted_poly, expected);
+    }
+
+    #[test]
+    fn test_neg_shift_poly_by_k_large_shift() {
+        // Polynomial: x^1 + y^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+
+        // Shift by k=3 (too large for the number of variables)
+        let shifted_poly = poly.neg_shift_poly_by_k(3);
+
+        // Expected result should be an empty polynomial (both variables shifted out)
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(0, vec![]));
+
+        assert_eq!(shifted_poly, expected);
+    }
+
+    #[test]
+    fn test_evaluate_variable_basic() {
+        // Polynomial: x^1 + y^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)]))   // y term
+        ]));
+
+        // Evaluate x=2, y=3
+        let evaluation = poly.evaluate_variable(&vec![ScalarField::from(2u32), ScalarField::from(3u32)]);
+
+        // Expected result: 2x + 3y evaluated at x=2, y=3 -> 2 + 3 = 5
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(0, vec![
+            (ScalarField::from(5u32), SparseTerm::new(vec![])) // Constant term 5
+        ]));
+
+        assert_eq!(evaluation, expected);
+    }
+
+    #[test]
+    fn test_evaluate_variable_partial() {
+        // Polynomial: x^1 + z^1
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(3, vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),  // x term
+            (ScalarField::one(), SparseTerm::new(vec![(2, 1)]))   // z term
+        ]));
+
+        // Evaluate x=2, leaving z unevaluated
+        let evaluation = poly.evaluate_variable(&vec![ScalarField::from(2u32)]);
+
+        // Expected result: x = 2, z term unevaluated
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(3, vec![
+            (ScalarField::from(2u32), SparseTerm::new(vec![])),  // Constant term 2 from x
+            (ScalarField::one(), SparseTerm::new(vec![(2, 1)]))  // z term unchanged
+        ]));
+
+        assert_eq!(evaluation, expected);
+    }
 }
