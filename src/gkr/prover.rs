@@ -2,14 +2,14 @@ use std::cmp::max;
 
 use ark_bn254::Fr as ScalarField;
 use ark_ff::Zero;
-use rand::Rng;
 use ark_poly::Polynomial;
+use rand::Rng;
 
-use crate::graph::graph::{Graph, InputValue};
-use crate::graph::node::Node;
-use super::sumcheck::Prover as SumCheckProver;
 use super::error::GKRError;
 use super::fiat_shamir::FiatShamir;
+use super::sumcheck::Prover as SumCheckProver;
+use crate::graph::graph::{Graph, InputValue};
+use crate::graph::node::Node;
 use crate::poly::{restrict_poly_to_line, unique_univariate_line};
 
 #[derive(Debug, Clone)]

@@ -85,8 +85,8 @@ impl Layer {
                 reduced_add_poly = reduced_add_poly.neg_shift_poly_by_k(r.len());
                 let left: MLPoly = evaluate_variable(mult, r).into();
                 let right: MLPoly = MLPoly::new(w_b.clone()) * MLPoly::new(w_c.clone());
-               // right = MLPoly::new(MLPoly::new(w_b) * MLPoly::new(w_c));
-               let mut reduced_mult_poly = left * right;
+                // right = MLPoly::new(MLPoly::new(w_b) * MLPoly::new(w_c));
+                let mut reduced_mult_poly = left * right;
                 // let mut reduced_mult_poly =
                 //     mult_poly(&evaluate_variable(mult, r), &mult_poly(&w_b, &w_c));
                 reduced_mult_poly = reduced_mult_poly.neg_shift_poly_by_k(r.len());
@@ -116,12 +116,12 @@ impl Layer {
                 w_c,
                 ..
             } => {
-               //let f = mult_poly(add, &(w_b + w_c)) + mult_poly(mult, &mult_poly(&w_b, &w_c));
-               let right1: MLPoly = (w_b + w_c).into();
-               let right2: MLPoly = MLPoly(w_b.clone()) * MLPoly(w_c.clone());
-               let f = (MLPoly(add.clone()) + right1) + (MLPoly(mult.clone()) * right2);
-               //sum_last_k_var(&f, 2 * prev_k)
-               f.sum_last_k_var(2 * prev_k)
+                //let f = mult_poly(add, &(w_b + w_c)) + mult_poly(mult, &mult_poly(&w_b, &w_c));
+                let right1: MLPoly = (w_b + w_c).into();
+                let right2: MLPoly = MLPoly(w_b.clone()) * MLPoly(w_c.clone());
+                let f = (MLPoly(add.clone()) + right1) + (MLPoly(mult.clone()) * right2);
+                //sum_last_k_var(&f, 2 * prev_k)
+                f.sum_last_k_var(2 * prev_k)
             }
         }
     }

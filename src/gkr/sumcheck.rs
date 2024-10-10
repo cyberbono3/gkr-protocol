@@ -1,7 +1,6 @@
 use super::fiat_shamir::FiatShamir;
 use crate::poly::n_to_vec;
 
-
 use ark_bn254::Fr as ScalarField;
 use ark_ff::Field;
 use ark_poly::polynomial::multivariate::{SparsePolynomial, SparseTerm, Term};

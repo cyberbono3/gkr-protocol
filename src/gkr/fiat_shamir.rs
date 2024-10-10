@@ -1,5 +1,5 @@
-use crate::poly::UniPoly;
 use super::mimc::Mimc7;
+use crate::poly::UniPoly;
 use ark_bn254::Fr as ScalarField;
 use ark_ff::Zero;
 use std::ops::Deref;
