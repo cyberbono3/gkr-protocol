@@ -259,16 +259,6 @@ pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
 }
 
 
-pub fn neg_shift_poly_by_k(p: &MultiPoly, k: usize) -> MultiPoly {
-    let terms = p.terms();
-    let current_num_vars = p.num_vars();
-    let mut shifted_terms = vec![];
-    for (unit, term) in terms {
-        let shifted_term = SparseTerm::new((*term).iter().map(|c| (c.0 - k, c.1)).collect());
-        shifted_terms.push((*unit, shifted_term));
-    }
-    MultiPoly::from_coefficients_vec(current_num_vars - k, shifted_terms)
-}
 
 pub fn evaluate_variable(p: &MultiPoly, r: &Vec<ScalarField>) -> MultiPoly {
     if p.is_zero() {

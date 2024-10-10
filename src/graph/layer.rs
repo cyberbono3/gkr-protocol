@@ -77,20 +77,14 @@ impl Layer {
                 w_c,
                 ..
             } => {
-                //pub fn mult_poly(p1: &MultiPoly, p2: &MultiPoly) -> MultiPoly {
                 let left: MLPoly = evaluate_variable(add, r).into();
                 let right: MLPoly = (w_b + w_c).into();
                 let mut reduced_add_poly: MLPoly = left * right;
-                //let mut reduced_add_poly = mult_poly(&evaluate_variable(add, r), &(w_b + w_c));
                 reduced_add_poly = reduced_add_poly.neg_shift_poly_by_k(r.len());
                 let left: MLPoly = evaluate_variable(mult, r).into();
                 let right: MLPoly = MLPoly::new(w_b.clone()) * MLPoly::new(w_c.clone());
-                // right = MLPoly::new(MLPoly::new(w_b) * MLPoly::new(w_c));
                 let mut reduced_mult_poly = left * right;
-                // let mut reduced_mult_poly =
-                //     mult_poly(&evaluate_variable(mult, r), &mult_poly(&w_b, &w_c));
                 reduced_mult_poly = reduced_mult_poly.neg_shift_poly_by_k(r.len());
-                //reduced_mult_poly = neg_shift_poly_by_k(&reduced_mult_poly, r.len());
                 reduced_add_poly + reduced_mult_poly
             }
         }
