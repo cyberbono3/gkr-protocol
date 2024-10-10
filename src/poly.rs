@@ -1,6 +1,6 @@
 use core::str::Chars;
 use std::cmp::max;
-use std::ops::Mul;
+use std::ops::{Mul, Add};
 
 use ark_ff::Zero;
 
@@ -14,12 +14,16 @@ pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;
 // TODO rename MLPoly to MLPoly
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MLPoly(pub MultiPoly);
+
+
+
+
 impl MLPoly {
     pub fn new(multi_poly: MultiPoly) -> Self {
         Self(multi_poly)
     }
 
-    pub fn neg_shift_poly_by_k(&self, k: usize) -> Self {
+    pub fn neg_shift_poly_by_k(self, k: usize) -> Self {
         let terms = &self.0.terms;
         let current_num_vars = self.0.num_vars;
         let mut shifted_terms = Vec::with_capacity(terms.len());
@@ -27,7 +31,7 @@ impl MLPoly {
             let shifted_term = SparseTerm::new((*term).iter().map(|&c| (c.0 - k, c.1)).collect());
             shifted_terms.push((*unit, shifted_term));
         }
-        Self(MultiPoly::from_coefficients_vec(current_num_vars - k, shifted_terms))
+        MultiPoly::from_coefficients_vec(current_num_vars - k, shifted_terms).into()
     }
 
     pub fn evaluate_variable(&self, r: &Vec<ScalarField>) -> Self {
@@ -109,6 +113,12 @@ impl MLPoly {
     
 }
 
+impl From<MultiPoly> for MLPoly {
+    fn from(multi: MultiPoly) -> Self {
+        Self(multi)
+    }
+}
+
 impl Mul for MLPoly {
     type Output = Self;
     fn mul(self, other: Self) -> Self::Output {
@@ -124,6 +134,13 @@ impl Mul for MLPoly {
             }
         }
         MLPoly::new(MultiPoly::from_coefficients_vec(num_vars, mult_terms))
+    }
+}
+
+impl Add for MLPoly {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        (self.0 + other.0).into()
     }
 }
 pub struct Binary<'a> {
@@ -144,7 +161,7 @@ impl<'a> From<Binary<'a>> for MLPoly {
         let num_vars = binary.inputs.iter().map(|c| c.clone().count()).max().unwrap();
         // let mut offset = 0;
         for (input, unit) in binary.inputs.iter().zip(binary.evals) {
-            let mut current_term: Vec<(ScalarField, SparseTerm)> = vec![];
+            let mut current_term: Vec<(ScalarField, SparseTerm)> = Vec::with_capacity(input.clone().count());
             for (idx, char) in input.clone().enumerate() {
                 // x_i
                 if char == '1' {

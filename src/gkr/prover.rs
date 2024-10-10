@@ -46,7 +46,7 @@ impl Prover {
         // recursive sumchecks
         for (prev_idx, layer) in self.graph.layers[1..].iter().enumerate().rev() {
             let f_i = layer.w_ext_gate_eval(&r_i);
-            let mut sumcheck_prover = SumCheckProver::new(&f_i);
+            let mut sumcheck_prover = SumCheckProver::new(&f_i.0);
             sumcheck_prover.verify(m_i);
             let prev_layer = &self.graph.layers[prev_idx];
             let b = sumcheck_prover.r_vec[0..prev_layer.k()].to_vec();
@@ -74,7 +74,7 @@ impl Prover {
             let restricted_poly = restrict_poly_to_line(prev_layer.w_ext(), &lines);
 
             assert_eq!(
-                f_i.evaluate(&sumcheck_prover.r_vec),
+                f_i.0.evaluate(&sumcheck_prover.r_vec),
                 // verifier's calc
                 layer.w_ext_line_restricted_values(
                     &[r_i.as_slice(), sumcheck_prover.r_vec.as_slice()].concat(),
@@ -103,7 +103,7 @@ impl Prover {
         // recursive sumchecks
         for (prev_idx, layer) in self.graph.layers[1..].iter().enumerate().rev() {
             let f_i = layer.w_ext_gate_eval(&r_i);
-            let mut sumcheck_prover = SumCheckProver::new(&f_i);
+            let mut sumcheck_prover = SumCheckProver::new(&f_i.0);
             sumcheck_prover.verify(m_i);
             let prev_layer = &self.graph.layers[prev_idx];
             let b = sumcheck_prover.r_vec[0..prev_layer.k()].to_vec();
@@ -131,7 +131,7 @@ impl Prover {
             let restricted_poly = restrict_poly_to_line(prev_layer.w_ext(), &lines);
 
             assert_eq!(
-                f_i.evaluate(&sumcheck_prover.r_vec),
+                f_i.0.evaluate(&sumcheck_prover.r_vec),
                 // verifier's calc
                 layer.w_ext_line_restricted_values(
                     &[r_i.as_slice(), sumcheck_prover.r_vec.as_slice()].concat(),
