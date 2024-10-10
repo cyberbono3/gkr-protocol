@@ -168,8 +168,8 @@ impl Graph {
 
                 let prev_layer = &layers[*index - 1];
 
-                let w_b = shift_poly_by_k(&prev_layer.w_ext(), max(k, 1));
-                let w_c = shift_poly_by_k(&prev_layer.w_ext(), prev_layer.k() + max(k, 1));
+                let w_b = shift_poly_by_k(&prev_layer.w_ext().0, max(k, 1));
+                let w_c = shift_poly_by_k(&prev_layer.w_ext().0, prev_layer.k() + max(k, 1));
                 if *index == &self.nodes.len() - 1 {
                     let output_poly = multilinear_polynomial_from_evals(
                         (0..layer_nodes.len()).collect(),

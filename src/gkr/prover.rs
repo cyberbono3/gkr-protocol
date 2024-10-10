@@ -71,7 +71,7 @@ impl Prover {
                     .collect::<Vec<ScalarField>>()
             );
 
-            let restricted_poly = restrict_poly_to_line(prev_layer.w_ext(), &lines);
+            let restricted_poly = restrict_poly_to_line(prev_layer.w_ext().0, &lines);
 
             assert_eq!(
                 f_i.0.evaluate(&sumcheck_prover.r_vec),
@@ -89,7 +89,7 @@ impl Prover {
 
         // final round
         let input_layer = self.graph.layers.first().unwrap();
-        assert_eq!(m_i, input_layer.w_ext().evaluate(&r_i));
+        assert_eq!(m_i, input_layer.w_ext().0.evaluate(&r_i));
     }
 
     pub fn verify_non_interactive(&mut self) {
@@ -128,7 +128,7 @@ impl Prover {
                     .collect::<Vec<ScalarField>>()
             );
 
-            let restricted_poly = restrict_poly_to_line(prev_layer.w_ext(), &lines);
+            let restricted_poly = restrict_poly_to_line(prev_layer.w_ext().0, &lines);
 
             assert_eq!(
                 f_i.0.evaluate(&sumcheck_prover.r_vec),
@@ -146,7 +146,7 @@ impl Prover {
 
         // final round
         let input_layer = self.graph.layers.first().unwrap();
-        assert_eq!(m_i, input_layer.w_ext().evaluate(&r_i));
+        assert_eq!(m_i, input_layer.w_ext().0.evaluate(&r_i));
     }
 
     // Verifier procedures

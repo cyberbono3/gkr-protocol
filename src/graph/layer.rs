@@ -96,9 +96,9 @@ impl Layer {
         }
     }
 
-    pub fn w_ext(&self) -> MultiPoly {
+    pub fn w_ext(&self) -> MLPoly {
         match self {
-            Self::InputLayer { k: _, input_ext } => input_ext.clone(),
+            Self::InputLayer { k: _, input_ext } => input_ext.clone().into(),
             Self::InterLayer {
                 k: _,
                 prev_k,
@@ -116,8 +116,12 @@ impl Layer {
                 w_c,
                 ..
             } => {
-                let f = mult_poly(add, &(w_b + w_c)) + mult_poly(mult, &mult_poly(&w_b, &w_c));
-                sum_last_k_var(&f, 2 * prev_k)
+               //let f = mult_poly(add, &(w_b + w_c)) + mult_poly(mult, &mult_poly(&w_b, &w_c));
+               let right1: MLPoly = (w_b + w_c).into();
+               let right2: MLPoly = MLPoly(w_b.clone()) * MLPoly(w_c.clone());
+               let f = (MLPoly(add.clone()) + right1) + (MLPoly(mult.clone()) * right2);
+               //sum_last_k_var(&f, 2 * prev_k)
+               f.sum_last_k_var(2 * prev_k)
             }
         }
     }

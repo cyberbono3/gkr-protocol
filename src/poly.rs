@@ -57,7 +57,7 @@ impl MLPoly {
         Self::new(MultiPoly::from_coefficients_vec(new_num_vars, new_coefficients))
     }
 
-    pub fn sum_last_k_var(&self, k: usize) -> Self {
+    pub fn sum_last_k_var(self, k: usize) -> Self {
         if self.0.is_zero() {
             Self::new(self.0.clone());
         }
