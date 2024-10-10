@@ -152,13 +152,13 @@ impl Graph {
                         // total input as current node + inbound node 1 + inbound node 2
                         let input = format!("{}{}{}", curr_string, left_string, right_string);
 
-                        let poly =
-                            polynomial_from_binary(vec![input.chars()], vec![ScalarField::from(1)]);
+                        let poly: MLPoly = Binary::new(vec![input.chars()], vec![ScalarField::from(1)]).into();
+                           // polynomial_from_binary(vec![input.chars()], vec![ScalarField::from(1)]);
 
                         if let Node::Add { .. } = node {
-                            add_ext = add_ext + poly;
+                            add_ext = add_ext + poly.0;
                         } else if let Node::Mult { .. } = node {
-                            mult_ext = mult_ext + poly;
+                            mult_ext = mult_ext + poly.0;
                         }
                     // input node
                     } else {
@@ -186,7 +186,7 @@ impl Graph {
                         mult: mult_ext,
                         w_b,
                         w_c,
-                        d: output_poly,
+                        d: output_poly.0,
                     }
                 } else {
                     Layer::InterLayer {
@@ -209,7 +209,7 @@ impl Graph {
                 );
                 Layer::InputLayer {
                     k: get_k(layer_nodes.len()),
-                    input_ext: input_poly,
+                    input_ext: input_poly.0,
                 }
             };
             layers.push(layer);

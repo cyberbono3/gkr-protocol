@@ -39,7 +39,7 @@ impl MLPoly {
         let new_num_vars = self.0.num_vars;
         for (unit, term) in &self.0.terms {
             let mut new_unit = *unit;
-            let mut new_term = vec![];
+            let mut new_term = Vec::with_capacity(term.len());
             for (var, power) in (*term).iter() {
                 if var < &r.len() {
                     for _ in 0..*power {
@@ -162,7 +162,7 @@ impl<'a> Binary<'a> {
 
 impl<'a> From<Binary<'a>> for MLPoly {
     fn from(binary: Binary<'a>) -> Self {
-        let mut terms: Vec<(ScalarField, SparseTerm)> = vec![];
+        let mut terms: Vec<(ScalarField, SparseTerm)> = Vec::with_capacity(binary.inputs.len());
         let num_vars = binary
             .inputs
             .iter()
@@ -259,76 +259,50 @@ pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
 }
 
 
+// // TODO define from trait
+// pub fn polynomial_from_binary(inputs: Vec<Chars>, evals: Vec<ScalarField>) -> MultiPoly {
+//     let mut terms: Vec<(ScalarField, SparseTerm)> = vec![];
+//     let num_vars = inputs.iter().map(|c| c.clone().count()).max().unwrap();
+//     // let mut offset = 0;
+//     for (input, unit) in inputs.iter().zip(evals) {
+//         let mut current_term: Vec<(ScalarField, SparseTerm)> = vec![];
+//         for (idx, char) in input.clone().enumerate() {
+//             // x_i
+//             if char == '1' {
+//                 if current_term.len() == 0 {
+//                     current_term.append(&mut vec![(unit, SparseTerm::new(vec![(idx, 1)]))])
+//                 } else {
+//                     for term in &mut current_term {
+//                         let mut coeffs = (*term.1.clone()).to_vec();
+//                         coeffs.push((idx, 1));
+//                         term.1 = SparseTerm::new(coeffs);
+//                     }
+//                 }
+//             }
+//             // 1 - x_i
+//             else if char == '0' {
+//                 if current_term.len() == 0 {
+//                     current_term.append(&mut vec![
+//                         (unit, SparseTerm::new(vec![])),
+//                         (-unit, SparseTerm::new(vec![(idx, 1)])),
+//                     ])
+//                 } else {
+//                     //  we check the original terms but push a new set of terms multiplied by -x_i
+//                     let mut new_terms = vec![];
+//                     for term in &current_term {
+//                         let mut coeffs = (*term.1.clone()).to_vec();
+//                         coeffs.push((idx, 1));
+//                         new_terms.push((-term.0, SparseTerm::new(coeffs)));
+//                     }
+//                     current_term.append(&mut new_terms);
+//                 }
+//             }
+//         }
+//         terms.append(&mut current_term)
+//     }
 
-pub fn sum_last_k_var(p: &MultiPoly, k: usize) -> MultiPoly {
-    if p.is_zero() {
-        return p.clone();
-    }
-    let mut new_coefficients = vec![];
-    let new_num_vars = p.num_vars() - k;
-    for (unit, term) in p.terms() {
-        let mut new_term = vec![];
-        let mut num_reduced_terms = 0;
-        for (var, power) in (*term).iter() {
-            if (p.num_vars() - var) <= k {
-                num_reduced_terms += 1;
-            } else {
-                new_term.push((*var, *power));
-            }
-        }
-        let mut new_unit = *unit;
-        for _ in 0..2_i32.pow((k - num_reduced_terms) as u32) {
-            new_unit += unit;
-        }
-        new_coefficients.push((new_unit, SparseTerm::new(new_term)));
-    }
-    MultiPoly::from_coefficients_vec(new_num_vars, new_coefficients)
-}
-
-// TODO define from trait
-pub fn polynomial_from_binary(inputs: Vec<Chars>, evals: Vec<ScalarField>) -> MultiPoly {
-    let mut terms: Vec<(ScalarField, SparseTerm)> = vec![];
-    let num_vars = inputs.iter().map(|c| c.clone().count()).max().unwrap();
-    // let mut offset = 0;
-    for (input, unit) in inputs.iter().zip(evals) {
-        let mut current_term: Vec<(ScalarField, SparseTerm)> = vec![];
-        for (idx, char) in input.clone().enumerate() {
-            // x_i
-            if char == '1' {
-                if current_term.len() == 0 {
-                    current_term.append(&mut vec![(unit, SparseTerm::new(vec![(idx, 1)]))])
-                } else {
-                    for term in &mut current_term {
-                        let mut coeffs = (*term.1.clone()).to_vec();
-                        coeffs.push((idx, 1));
-                        term.1 = SparseTerm::new(coeffs);
-                    }
-                }
-            }
-            // 1 - x_i
-            else if char == '0' {
-                if current_term.len() == 0 {
-                    current_term.append(&mut vec![
-                        (unit, SparseTerm::new(vec![])),
-                        (-unit, SparseTerm::new(vec![(idx, 1)])),
-                    ])
-                } else {
-                    //  we check the original terms but push a new set of terms multiplied by -x_i
-                    let mut new_terms = vec![];
-                    for term in &current_term {
-                        let mut coeffs = (*term.1.clone()).to_vec();
-                        coeffs.push((idx, 1));
-                        new_terms.push((-term.0, SparseTerm::new(coeffs)));
-                    }
-                    current_term.append(&mut new_terms);
-                }
-            }
-        }
-        terms.append(&mut current_term)
-    }
-
-    MultiPoly::from_coefficients_vec(num_vars, terms)
-}
+//     MultiPoly::from_coefficients_vec(num_vars, terms)
+// }
 
 pub fn shift_poly_by_k(p: &MultiPoly, k: usize) -> MultiPoly {
     let terms = p.terms();
@@ -345,15 +319,15 @@ pub fn multilinear_polynomial_from_evals(
     inputs: Vec<usize>,
     evals: Vec<ScalarField>,
     k: usize,
-) -> MultiPoly {
+) -> MLPoly {
     let mut binary_inputs = vec![];
     for curr in inputs {
         // index of current node in layer as a binary string
         let curr_string = format!("{:0k$b}", curr, k = k);
         binary_inputs.push(curr_string);
     }
-    let input: Vec<Chars> = binary_inputs.iter().map(|s| s.chars()).collect();
-    polynomial_from_binary(input, evals)
+    let chars_vec: Vec<Chars> = binary_inputs.iter().map(|s| s.chars()).collect();
+    Binary::new(chars_vec, evals).into()
 }
 
 pub fn restrict_poly_to_line(p: MultiPoly, line: &[UniPoly]) -> UniPoly {
