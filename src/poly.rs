@@ -258,21 +258,6 @@ pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
         .collect()
 }
 
-// TODO add Poly wrapper and update API
-pub fn mult_poly(p1: &MultiPoly, p2: &MultiPoly) -> MultiPoly {
-    let p1_terms = p1.terms();
-    let p2_terms = p2.terms();
-    let num_vars = max(p1.num_vars(), p2.num_vars());
-    let mut mult_terms = vec![];
-    for (unit_1, term_1) in p1_terms {
-        for (unit_2, term_2) in p2_terms {
-            let mut mult_term: Vec<_> = (*term_1).to_vec();
-            mult_term.append(&mut term_2.to_vec());
-            mult_terms.push((unit_1 * unit_2, SparseTerm::new(mult_term)));
-        }
-    }
-    MultiPoly::from_coefficients_vec(num_vars, mult_terms)
-}
 
 pub fn neg_shift_poly_by_k(p: &MultiPoly, k: usize) -> MultiPoly {
     let terms = p.terms();
