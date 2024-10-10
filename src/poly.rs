@@ -31,7 +31,7 @@ impl MLPoly {
         MultiPoly::from_coefficients_vec(current_num_vars - k, shifted_terms).into()
     }
 
-    pub fn evaluate_variable(&self, r: &Vec<ScalarField>) -> Self {
+    pub fn evaluate_variable(self, r: &Vec<ScalarField>) -> Self {
         if self.0.is_zero() {
             return Self(self.0.clone());
         }
@@ -259,29 +259,6 @@ pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
 }
 
 
-
-pub fn evaluate_variable(p: &MultiPoly, r: &Vec<ScalarField>) -> MultiPoly {
-    if p.is_zero() {
-        return p.clone();
-    }
-    let mut new_coefficients = vec![];
-    let new_num_vars = p.num_vars();
-    for (unit, term) in p.terms() {
-        let mut new_unit = *unit;
-        let mut new_term = vec![];
-        for (var, power) in (*term).iter() {
-            if var < &r.len() {
-                for _ in 0..*power {
-                    new_unit = new_unit * r[*var];
-                }
-            } else {
-                new_term.push((*var, *power));
-            }
-        }
-        new_coefficients.push((new_unit, SparseTerm::new(new_term)));
-    }
-    MultiPoly::from_coefficients_vec(new_num_vars, new_coefficients)
-}
 
 pub fn sum_last_k_var(p: &MultiPoly, k: usize) -> MultiPoly {
     if p.is_zero() {
