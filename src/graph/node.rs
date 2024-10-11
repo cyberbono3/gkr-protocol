@@ -25,10 +25,10 @@ impl Node {
     }
 
     pub fn id(&self) -> usize {
-        match self {
-            Node::Add { id, .. } => *id,
-            Node::Mult { id, .. } => *id,
-            Node::Input { id } => *id,
+        match *self {
+            Node::Add { id, .. } => id,
+            Node::Mult { id, .. } => id,
+            Node::Input { id } => id,
         }
     }
 }

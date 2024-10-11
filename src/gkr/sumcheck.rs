@@ -168,6 +168,7 @@ mod tests {
             1,
             vec![(ScalarField::from(2), SparseTerm::new(vec![(0, 3)]))],
         );
+
         let sum = ScalarField::from(2);
 
         let mut prover = Prover::new(&poly);
