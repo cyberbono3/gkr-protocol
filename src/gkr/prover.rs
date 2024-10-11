@@ -71,7 +71,8 @@ impl Prover {
                     .collect::<Vec<ScalarField>>()
             );
 
-            let restricted_poly = restrict_poly_to_line(prev_layer.w_ext().0, &lines);
+            let poly = prev_layer.w_ext();
+            let restricted_poly = poly.restrict_poly_to_line(&lines);
 
             assert_eq!(
                 f_i.0.evaluate(&sumcheck_prover.r_vec),
@@ -127,8 +128,8 @@ impl Prover {
                     .map(|l| l.evaluate(&ScalarField::from(1)))
                     .collect::<Vec<ScalarField>>()
             );
-
-            let restricted_poly = restrict_poly_to_line(prev_layer.w_ext().0, &lines);
+            let poly = prev_layer.w_ext();
+            let restricted_poly = poly.restrict_poly_to_line(&lines);
 
             assert_eq!(
                 f_i.0.evaluate(&sumcheck_prover.r_vec),
