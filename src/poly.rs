@@ -89,7 +89,7 @@ impl MLPoly {
     pub fn shift_poly_by_k(&self, k: usize) -> Self {
         let terms = &self.0.terms;
         let current_num_vars = self.0.num_vars;
-        let mut shifted_terms = vec![];
+        let mut shifted_terms = Vec::with_capacity(terms.len());
         for (unit, term) in terms {
             let shifted_term = SparseTerm::new((*term).iter().map(|c| (c.0 + k, c.1)).collect());
             shifted_terms.push((*unit, shifted_term));
@@ -231,20 +231,6 @@ impl From<Input> for MLPoly {
         binary.into()
     }
 }
-// pub fn multilinear_polynomial_from_evals(
-//     inputs: Vec<usize>,
-//     evals: Vec<ScalarField>,
-//     k: usize,
-// ) -> MultiPoly {
-//     let mut binary_inputs = vec![];
-//     for curr in inputs {
-//         // index of current node in layer as a binary string
-//         let curr_string = format!("{:0k$b}", curr, k = k);
-//         binary_inputs.push(curr_string);
-//     }
-//     let input: Vec<Chars> = binary_inputs.iter().map(|s| s.chars()).collect();
-//     polynomial_from_binary(input, evals)
-// }
 
 pub type UniPoly = UniSparsePolynomial<ScalarField>;
 pub struct UVPoly(pub UniPoly);
@@ -256,63 +242,6 @@ pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
         .chars()
         .map(|x| if x == '1' { 1.into() } else { 0.into() })
         .collect()
-}
-
-
-// // TODO define from trait
-// pub fn polynomial_from_binary(inputs: Vec<Chars>, evals: Vec<ScalarField>) -> MultiPoly {
-//     let mut terms: Vec<(ScalarField, SparseTerm)> = vec![];
-//     let num_vars = inputs.iter().map(|c| c.clone().count()).max().unwrap();
-//     // let mut offset = 0;
-//     for (input, unit) in inputs.iter().zip(evals) {
-//         let mut current_term: Vec<(ScalarField, SparseTerm)> = vec![];
-//         for (idx, char) in input.clone().enumerate() {
-//             // x_i
-//             if char == '1' {
-//                 if current_term.len() == 0 {
-//                     current_term.append(&mut vec![(unit, SparseTerm::new(vec![(idx, 1)]))])
-//                 } else {
-//                     for term in &mut current_term {
-//                         let mut coeffs = (*term.1.clone()).to_vec();
-//                         coeffs.push((idx, 1));
-//                         term.1 = SparseTerm::new(coeffs);
-//                     }
-//                 }
-//             }
-//             // 1 - x_i
-//             else if char == '0' {
-//                 if current_term.len() == 0 {
-//                     current_term.append(&mut vec![
-//                         (unit, SparseTerm::new(vec![])),
-//                         (-unit, SparseTerm::new(vec![(idx, 1)])),
-//                     ])
-//                 } else {
-//                     //  we check the original terms but push a new set of terms multiplied by -x_i
-//                     let mut new_terms = vec![];
-//                     for term in &current_term {
-//                         let mut coeffs = (*term.1.clone()).to_vec();
-//                         coeffs.push((idx, 1));
-//                         new_terms.push((-term.0, SparseTerm::new(coeffs)));
-//                     }
-//                     current_term.append(&mut new_terms);
-//                 }
-//             }
-//         }
-//         terms.append(&mut current_term)
-//     }
-
-//     MultiPoly::from_coefficients_vec(num_vars, terms)
-// }
-
-pub fn shift_poly_by_k(p: &MultiPoly, k: usize) -> MultiPoly {
-    let terms = p.terms();
-    let current_num_vars = p.num_vars();
-    let mut shifted_terms = vec![];
-    for (unit, term) in terms {
-        let shifted_term = SparseTerm::new((*term).iter().map(|c| (c.0 + k, c.1)).collect());
-        shifted_terms.push((*unit, shifted_term));
-    }
-    MultiPoly::from_coefficients_vec(current_num_vars + k, shifted_terms)
 }
 
 pub fn multilinear_polynomial_from_evals(
