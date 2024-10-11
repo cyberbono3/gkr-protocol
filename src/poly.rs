@@ -212,14 +212,24 @@ impl<'a> From<Binary<'a>> for MLPoly {
     }
 }
 
-pub struct Input {
+pub struct PolyInput {
     inputs: Vec<usize>,
     evals: Vec<ScalarField>,
     k: usize,
 }
 
-impl From<Input> for MLPoly {
-    fn from(input: Input) -> Self {
+impl PolyInput {
+    pub fn new(inputs: Vec<usize>, evals: Vec<ScalarField>, k: usize) -> Self {
+        Self {
+            inputs,
+            evals, 
+            k
+        }
+    }
+}
+
+impl From<PolyInput> for MLPoly {
+    fn from(input: PolyInput) -> Self {
         let k = input.k;
         let str_vec: Vec<String> = input
             .inputs
@@ -242,21 +252,6 @@ pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
         .chars()
         .map(|x| if x == '1' { 1.into() } else { 0.into() })
         .collect()
-}
-
-pub fn multilinear_polynomial_from_evals(
-    inputs: Vec<usize>,
-    evals: Vec<ScalarField>,
-    k: usize,
-) -> MLPoly {
-    let mut binary_inputs = vec![];
-    for curr in inputs {
-        // index of current node in layer as a binary string
-        let curr_string = format!("{:0k$b}", curr, k = k);
-        binary_inputs.push(curr_string);
-    }
-    let chars_vec: Vec<Chars> = binary_inputs.iter().map(|s| s.chars()).collect();
-    Binary::new(chars_vec, evals).into()
 }
 
 pub fn restrict_poly_to_line(p: MultiPoly, line: &[UniPoly]) -> UniPoly {

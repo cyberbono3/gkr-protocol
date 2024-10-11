@@ -174,7 +174,7 @@ impl Graph {
                 let w_b = poly.shift_poly_by_k(max(k, 1));
                 let w_c = poly.shift_poly_by_k(prev_layer.k() + max(k, 1));
                 if *index == &self.nodes.len() - 1 {
-                    let output_poly = multilinear_polynomial_from_evals(
+                    let poly_input = PolyInput::new(
                         (0..layer_nodes.len()).collect(),
                         layer_nodes
                             .iter()
@@ -182,6 +182,7 @@ impl Graph {
                             .collect(),
                         k,
                     );
+                    let output_poly: MLPoly = poly_input.into();
                     Layer::OutputLayer {
                         k: get_k(layer_nodes.len()),
                         prev_k: prev_layer.k(),
@@ -202,7 +203,7 @@ impl Graph {
                     }
                 }
             } else {
-                let input_poly = multilinear_polynomial_from_evals(
+                let poly_input = PolyInput::new(
                     (0..layer_nodes.len()).collect(),
                     layer_nodes
                         .iter()
@@ -210,6 +211,7 @@ impl Graph {
                         .collect(),
                     k,
                 );
+                let input_poly: MLPoly = poly_input.into();
                 Layer::InputLayer {
                     k: get_k(layer_nodes.len()),
                     input_ext: input_poly.0,
