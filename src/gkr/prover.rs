@@ -10,7 +10,7 @@ use super::fiat_shamir::FiatShamir;
 use super::sumcheck::Prover as SumCheckProver;
 use crate::graph::graph::{Graph, InputValue};
 use crate::graph::node::Node;
-use crate::poly::{restrict_poly_to_line, unique_univariate_line};
+use crate::poly::unique_univariate_line;
 
 #[derive(Debug, Clone)]
 pub struct Prover {

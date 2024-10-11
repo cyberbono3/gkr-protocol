@@ -18,6 +18,7 @@ enum Input {
     },
 }
 
+
 impl Input {
     pub fn to_field_vec(&self) -> Vec<ScalarField> {
         match self {
@@ -44,6 +45,24 @@ impl Input {
             }
         }
     }
+
+    pub fn new_first(circuit_input: Vec<ScalarField>, g: UniPoly) -> Self {
+        Self::First { circuit_input, g }
+    }
+
+    pub fn new_subsequent(
+        circuit_input: Vec<ScalarField>,
+        i: usize,
+        prev_r: ScalarField,
+        g: UniPoly,
+    ) -> Self {
+        Self::Subsequent {
+            circuit_input,
+            i,
+            prev_r,
+            g,
+        }
+    }
 }
 
 // Simulates memory of a single prover instance
@@ -65,19 +84,19 @@ impl FiatShamir {
     // Use hash-chaining
     pub fn get_r(&mut self, g: UniPoly) -> ScalarField {
         let r = if self.r_vec.len() == 0 {
-            let input = Input::First {
-                circuit_input: self.circuit_input.clone(),
+            let input = Input::new_first(
+                self.circuit_input.clone(),
                 g,
-            };
+            );
             self.hash_func
                 .multi_hash(input.to_field_vec(), &ScalarField::zero())
         } else {
-            let input = Input::Subsequent {
-                circuit_input: self.circuit_input.clone(),
-                i: self.r_vec.len(),
-                prev_r: self.r_vec.last().unwrap().clone(),
+            let input = Input::new_subsequent(
+                self.circuit_input.clone(),
+                self.r_vec.len(),
+                self.r_vec.last().unwrap().clone(),
                 g,
-            };
+            );
             self.hash_func
                 .multi_hash(input.to_field_vec(), &ScalarField::zero())
         };
@@ -93,18 +112,16 @@ mod tests {
     #[test]
     pub fn test_input_to_field_vec() {
         let circuit_input = vec![ScalarField::zero(), ScalarField::from(1)];
-        let input = Input::First {
-            circuit_input: circuit_input.clone(),
-            g: UniPoly::zero(),
-        };
+        let input = Input::new_first(circuit_input.clone(),UniPoly::zero());
+    
         assert_eq!(input.to_field_vec(), circuit_input);
 
-        let input = Input::Subsequent {
-            circuit_input: circuit_input.clone(),
-            i: 32,
-            prev_r: ScalarField::from(22),
-            g: UniPoly::zero(),
-        };
+        let input = Input::new_subsequent(
+            circuit_input.clone(),
+            32,
+            ScalarField::from(22),
+            UniPoly::zero(),
+        );
         assert_eq!(
             input.to_field_vec(),
             vec![
@@ -115,15 +132,15 @@ mod tests {
             ]
         );
 
-        let input = Input::First {
-            circuit_input: circuit_input.clone(),
-            g: UniPoly::from_coefficients_vec(vec![
+        let input = Input::new_first(
+            circuit_input.clone(),
+            UniPoly::from_coefficients_vec(vec![
                 (0, ScalarField::from(1)),
                 (1, ScalarField::from(1)),
                 (3, ScalarField::from(3)),
                 (2, ScalarField::from(2)),
-            ]),
-        };
+            ])
+        );
         assert_eq!(
             input.to_field_vec(),
             vec![

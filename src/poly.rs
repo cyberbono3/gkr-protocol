@@ -220,11 +220,7 @@ pub struct PolyInput {
 
 impl PolyInput {
     pub fn new(inputs: Vec<usize>, evals: Vec<ScalarField>, k: usize) -> Self {
-        Self {
-            inputs,
-            evals, 
-            k
-        }
+        Self { inputs, evals, k }
     }
 }
 
@@ -243,7 +239,7 @@ impl From<PolyInput> for MLPoly {
 }
 
 pub type UniPoly = UniSparsePolynomial<ScalarField>;
-pub struct UVPoly(pub UniPoly);
+//pub struct UVPoly(pub UniPoly);
 
 // TODO to make a from trait
 // Converts i into an index in {0,1}^k
@@ -252,23 +248,6 @@ pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
         .chars()
         .map(|x| if x == '1' { 1.into() } else { 0.into() })
         .collect()
-}
-
-pub fn restrict_poly_to_line(p: MultiPoly, line: &[UniPoly]) -> UniPoly {
-    let mut restricted_poly = UniPoly::zero();
-    for (unit, term) in p.terms() {
-        let variables: Vec<_> = (*term).to_vec();
-        let mut term_poly = UniPoly::from_coefficients_slice(&[(0, *unit)]);
-        for (var, power) in variables {
-            let mut var_poly = line[var].clone();
-            for _ in 0..(power - 1) {
-                var_poly = var_poly.mul(&var_poly)
-            }
-            term_poly = term_poly.mul(&var_poly);
-        }
-        restricted_poly = restricted_poly + term_poly;
-    }
-    restricted_poly
 }
 
 pub fn unique_univariate_line(b: &[ScalarField], c: &[ScalarField]) -> Vec<UniPoly> {
