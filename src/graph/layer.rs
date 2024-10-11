@@ -195,10 +195,7 @@ impl Layer {
 mod tests {
     use super::*;
     use ark_poly::DenseMVPolynomial;
-   // use ark_bn254::Fr as ScalarField;
-   // use ark_ff::One;
-   // use ark_poly::polynomial::multivariate::SparseTerm;
-   
+
 
     fn mock_multipoly() -> MultiPoly {
         MultiPoly::from_coefficients_vec(4, vec![])
@@ -230,7 +227,7 @@ mod tests {
         let w_b = mock_multipoly();
         let w_c = mock_multipoly();
 
-        let inter_layer = Layer::new_inter_layer(8, mock_multipoly());
+        let inter_layer = Layer::new_inter_layer(8, 4, add, mult, w_b, w_c);
 
         match inter_layer {
             Layer::InterLayer { k, prev_k, add: _, mult: _, w_b: _, w_c: _ } => {
