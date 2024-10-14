@@ -159,7 +159,6 @@ impl Layer {
                 let mult_poly = MLPoly(mult.clone());
                 let right_poly2: MLPoly = MLPoly(w_b.clone()) * MLPoly(w_c.clone());
                 let f = (add_poly + right_poly1) + (mult_poly * right_poly2);
-                //sum_last_k_var(&f, 2 * prev_k)
                 f.sum_last_k_var(2 * prev_k)
             }
         }
@@ -275,23 +274,10 @@ mod tests {
         let w_b = mock_multipoly();
         let w_c = mock_multipoly();
 
-        let layer1 = Layer::InterLayer {
-            k: 7,
-            prev_k: 3,
-            add: add.clone(),
-            mult: mult.clone(),
-            w_b: w_b.clone(),
-            w_c: w_c.clone(),
-        };
+        let layer1 = Layer::new_inter_layer(7, 3, add.clone(), mult.clone(), w_b.clone(), w_c.clone());
+     
 
-        let layer2 = Layer::InterLayer {
-            k: 7,
-            prev_k: 3,
-            add,
-            mult,
-            w_b,
-            w_c,
-        };
+        let layer2 = Layer::new_inter_layer(7, 3, add.clone(), mult.clone(), w_b.clone(), w_c.clone());
 
         assert_eq!(layer1, layer2);
     }

@@ -247,7 +247,7 @@ impl TryFrom<Vec<&Node>> for Graph {
         while !labelled {
             labelled = true;
             for node in &nodes {
-                if graph.get_level(node).is_err() {
+                if graph.get_level(*node).is_err() {
                     match node {
                         Node::Input { .. } => {
                             graph.insert(0, node);
