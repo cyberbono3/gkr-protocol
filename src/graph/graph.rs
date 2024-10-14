@@ -56,19 +56,23 @@ impl Graph {
         self.nodes.len()
     }
 
-    fn handle_inputs(op: Node, trace: &mut HashMap<Node, ScalarField>, inputs: &[Box<Node>]) -> Result<(), GraphError>  {
+    fn handle_inputs(
+        op: Node,
+        trace: &mut HashMap<Node, ScalarField>,
+        inputs: &[Box<Node>],
+    ) -> Result<(), GraphError> {
         match (inputs.first(), inputs.get(1)) {
             (Some(first_input), Some(second_input)) => {
                 let first_input = trace
-                .get(first_input)
-                .ok_or(GraphError::TraceNodeExistence)?;
+                    .get(first_input)
+                    .ok_or(GraphError::TraceNodeExistence)?;
                 let second_input = trace
-                .get(&second_input)
-                .ok_or(GraphError::TraceNodeExistence)?;
+                    .get(&second_input)
+                    .ok_or(GraphError::TraceNodeExistence)?;
                 trace.insert(op, first_input + second_input);
-                return Ok(())
-            },
-            
+                return Ok(());
+            }
+
             _ => return Err(GraphError::NonInput),
         }
     }
@@ -98,10 +102,10 @@ impl Graph {
         for i in 1..self.num_levels() {
             for op in &self.nodes[&i] {
                 match op {
-                    Node::Add {inputs, .. } => {
+                    Node::Add { inputs, .. } => {
                         Self::handle_inputs(op.clone(), &mut trace, inputs.as_slice())?
                     }
-                    Node::Mult {inputs, .. } => {
+                    Node::Mult { inputs, .. } => {
                         Self::handle_inputs(op.clone(), &mut trace, inputs.as_slice())?
                     }
                     _ => {}
@@ -139,34 +143,36 @@ impl Graph {
                 let mut add_ext = MultiPoly::zero();
                 let mut mult_ext = MultiPoly::zero();
                 for (curr, node) in layer_nodes.iter().enumerate() {
-                    if let Node::Add { inputs, .. } | Node::Mult { inputs, .. } = node {
-                        // index of current node in layer as a binary string
-                        let curr_string = format!("{:0k$b}", curr, k = k);
+                    match node {
+                        Node::Add { inputs, .. } | Node::Mult { inputs, .. } => {
+                            // index of current node in layer as a binary string
+                            let curr_string = format!("{:0k$b}", curr, k = k);
 
-                        // get index of inbound nodes to the current gate
-                        let prev_nodes = &self.nodes[&(index - 1)];
-                        let prev_k = get_k(prev_nodes.len());
-                        let left_index = prev_nodes.iter().position(|r| *r == *inputs[0]).unwrap();
-                        let right_index = prev_nodes.iter().position(|r| *r == *inputs[1]).unwrap();
+                            // get index of inbound nodes to the current gate
+                            let prev_nodes = &self.nodes[&(index - 1)];
+                            let prev_k = get_k(prev_nodes.len());
+                            let left_index =
+                                prev_nodes.iter().position(|r| *r == *inputs[0]).unwrap();
+                            let right_index =
+                                prev_nodes.iter().position(|r| *r == *inputs[1]).unwrap();
 
-                        // wiring predicates as binary string
-                        let left_string = format!("{:0k$b}", left_index, k = prev_k);
-                        let right_string = format!("{:0k$b}", right_index, k = prev_k);
-                        // total input as current node + inbound node 1 + inbound node 2
-                        let input = format!("{}{}{}", curr_string, left_string, right_string);
+                            // wiring predicates as binary string
+                            let left_string = format!("{:0k$b}", left_index, k = prev_k);
+                            let right_string = format!("{:0k$b}", right_index, k = prev_k);
+                            // total input as current node + inbound node 1 + inbound node 2
+                            let input = format!("{}{}{}", curr_string, left_string, right_string);
 
-                        let poly: MLPoly =
-                            Binary::new(vec![input.chars()], vec![ScalarField::from(1)]).into();
-                        // polynomial_from_binary(vec![input.chars()], vec![ScalarField::from(1)]);
+                            let poly: MLPoly =
+                                Binary::new(vec![input.chars()], vec![ScalarField::from(1)]).into();
+                            // polynomial_from_binary(vec![input.chars()], vec![ScalarField::from(1)]);
 
-                        if let Node::Add { .. } = node {
-                            add_ext = add_ext + poly.0;
-                        } else if let Node::Mult { .. } = node {
-                            mult_ext = mult_ext + poly.0;
+                            if let Node::Add { .. } = node {
+                                add_ext = add_ext + poly.0;
+                            } else if let Node::Mult { .. } = node {
+                                mult_ext = mult_ext + poly.0;
+                            }
                         }
-                    // input node
-                    } else {
-                        return Err(GraphError::Format);
+                        _ => return Err(GraphError::Format),
                     }
                 }
 
@@ -247,12 +253,12 @@ impl TryFrom<Vec<&Node>> for Graph {
                             graph.insert(0, node);
                         }
                         Node::Add { inputs, .. } | Node::Mult { inputs, .. } => {
-                            let (first_input, second_input) = (&&*inputs[0], &&*inputs[1]);
-                            if !nodes.contains(first_input) | !nodes.contains(second_input) {
+                            let (first_input, second_input) = (&*inputs[0], &*inputs[1]);
+                            if !seen.contains(first_input) | !seen.contains(second_input) {
                                 return Err(GraphError::NodeExistence);
                             }
-                            let first_level = graph.get_level(&inputs[0]);
-                            let second_level = graph.get_level(&inputs[1]);
+                            let first_level = graph.get_level(first_input);
+                            let second_level = graph.get_level(second_input);
                             if first_level.is_err() || second_level.is_err() {
                                 labelled = false;
                             } else {
