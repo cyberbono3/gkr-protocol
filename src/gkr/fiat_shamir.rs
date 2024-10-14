@@ -18,7 +18,6 @@ enum Input {
     },
 }
 
-
 impl Input {
     pub fn to_field_vec(&self) -> Vec<ScalarField> {
         match self {
@@ -84,10 +83,7 @@ impl FiatShamir {
     // Use hash-chaining
     pub fn get_r(&mut self, g: UniPoly) -> ScalarField {
         let r = if self.r_vec.len() == 0 {
-            let input = Input::new_first(
-                self.circuit_input.clone(),
-                g,
-            );
+            let input = Input::new_first(self.circuit_input.clone(), g);
             self.hash_func
                 .multi_hash(input.to_field_vec(), &ScalarField::zero())
         } else {
@@ -112,8 +108,8 @@ mod tests {
     #[test]
     pub fn test_input_to_field_vec() {
         let circuit_input = vec![ScalarField::zero(), ScalarField::from(1)];
-        let input = Input::new_first(circuit_input.clone(),UniPoly::zero());
-    
+        let input = Input::new_first(circuit_input.clone(), UniPoly::zero());
+
         assert_eq!(input.to_field_vec(), circuit_input);
 
         let input = Input::new_subsequent(
@@ -139,7 +135,7 @@ mod tests {
                 (1, ScalarField::from(1)),
                 (3, ScalarField::from(3)),
                 (2, ScalarField::from(2)),
-            ])
+            ]),
         );
         assert_eq!(
             input.to_field_vec(),

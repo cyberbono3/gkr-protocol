@@ -93,10 +93,7 @@ impl Layer {
 
     // Constructor for InputLayer
     pub fn new_input_layer(k: usize, input_ext: MultiPoly) -> Self {
-        Self::InputLayer {
-            k,
-            input_ext,
-        }
+        Self::InputLayer { k, input_ext }
     }
     pub fn evaluation_ext(&self) -> MultiPoly {
         match self {
@@ -196,7 +193,6 @@ mod tests {
     use super::*;
     use ark_poly::DenseMVPolynomial;
 
-
     fn mock_multipoly() -> MultiPoly {
         MultiPoly::from_coefficients_vec(4, vec![])
     }
@@ -208,14 +204,22 @@ mod tests {
         let w_b = mock_multipoly();
         let w_c = mock_multipoly();
         let d = mock_multipoly();
-        
+
         let output_layer = Layer::new_output_layer(10, 5, add, mult, w_b, w_c, d);
-       
+
         match output_layer {
-            Layer::OutputLayer { k, prev_k, add: _, mult: _, w_b: _, w_c: _, d: _ } => {
+            Layer::OutputLayer {
+                k,
+                prev_k,
+                add: _,
+                mult: _,
+                w_b: _,
+                w_c: _,
+                d: _,
+            } => {
                 assert_eq!(k, 10);
                 assert_eq!(prev_k, 5);
-            },
+            }
             _ => panic!("Layer was not correctly initialized as OutputLayer"),
         }
     }
@@ -230,10 +234,17 @@ mod tests {
         let inter_layer = Layer::new_inter_layer(8, 4, add, mult, w_b, w_c);
 
         match inter_layer {
-            Layer::InterLayer { k, prev_k, add: _, mult: _, w_b: _, w_c: _ } => {
+            Layer::InterLayer {
+                k,
+                prev_k,
+                add: _,
+                mult: _,
+                w_b: _,
+                w_c: _,
+            } => {
                 assert_eq!(k, 8);
                 assert_eq!(prev_k, 4);
-            },
+            }
             _ => panic!("Layer was not correctly initialized as InterLayer"),
         }
     }
@@ -249,10 +260,10 @@ mod tests {
         let input_layer = Layer::new_input_layer(6, mock_multipoly());
 
         match input_layer {
-            Layer::InputLayer { k,  ..} => {
+            Layer::InputLayer { k, .. } => {
                 assert_eq!(k, 6);
                 assert_eq!(prev_k, 3);
-            },
+            }
             _ => panic!("Layer was not correctly initialized as InputLayer"),
         }
     }
@@ -285,4 +296,3 @@ mod tests {
         assert_eq!(layer1, layer2);
     }
 }
-

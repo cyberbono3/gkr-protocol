@@ -56,6 +56,23 @@ impl Graph {
         self.nodes.len()
     }
 
+    fn handle_inputs(op: Node, trace: &mut HashMap<Node, ScalarField>, inputs: &[Box<Node>]) -> Result<(), GraphError>  {
+        match (inputs.first(), inputs.get(1)) {
+            (Some(first_input), Some(second_input)) => {
+                let first_input = trace
+                .get(first_input)
+                .ok_or(GraphError::TraceNodeExistence)?;
+                let second_input = trace
+                .get(&second_input)
+                .ok_or(GraphError::TraceNodeExistence)?;
+                trace.insert(op, first_input + second_input);
+                return Ok(())
+            },
+            
+            _ => return Err(GraphError::NonInput),
+        }
+    }
+
     /// forward pass for a graph
     pub fn forward(&mut self, mut values: Vec<InputValue>) -> Result<(), GraphError> {
         // remove duplicates
@@ -81,25 +98,11 @@ impl Graph {
         for i in 1..self.num_levels() {
             for op in &self.nodes[&i] {
                 match op {
-                    Node::Add { inputs, .. } => {
-                        let (first_input, second_input) = (&&*inputs[0], &&*inputs[1]);
-                        let first_input = trace
-                            .get(first_input)
-                            .ok_or(GraphError::TraceNodeExistence)?;
-                        let second_input = trace
-                            .get(second_input)
-                            .ok_or(GraphError::TraceNodeExistence)?;
-                        trace.insert(op.clone(), *first_input + *second_input);
+                    Node::Add {inputs, .. } => {
+                        Self::handle_inputs(op.clone(), &mut trace, inputs.as_slice())?
                     }
-                    Node::Mult { inputs, .. } => {
-                        let (first_input, second_input) = (&&*inputs[0], &&*inputs[1]);
-                        let first_input = trace
-                            .get(first_input)
-                            .ok_or(GraphError::TraceNodeExistence)?;
-                        let second_input = trace
-                            .get(second_input)
-                            .ok_or(GraphError::TraceNodeExistence)?;
-                        trace.insert(op.clone(), *first_input * *second_input);
+                    Node::Mult {inputs, .. } => {
+                        Self::handle_inputs(op.clone(), &mut trace, inputs.as_slice())?
                     }
                     _ => {}
                 }
