@@ -57,8 +57,7 @@ impl MLPoly {
         let current_num_vars = self.0.num_vars;
         let mut shifted_terms = Vec::with_capacity(terms.len());
         for (unit, term) in terms {
-            let wrapper = SparseTermWrapper(term.clone(), k);
-            let sparse_term: Vec<(usize, usize)> = wrapper.try_into()?;
+            let sparse_term: Vec<(usize, usize)> = SparseTermWrapper(term.clone(), k).try_into()?;
             let shifted_term = SparseTerm::new(sparse_term);
             shifted_terms.push((*unit, shifted_term));
         }
