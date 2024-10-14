@@ -8,27 +8,61 @@ use ark_bn254::Fr as ScalarField;
 use ark_poly::polynomial::multivariate::{SparsePolynomial, SparseTerm, Term};
 use ark_poly::polynomial::univariate::SparsePolynomial as UniSparsePolynomial;
 use ark_poly::DenseMVPolynomial;
+use thiserror::Error;
 
 pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;
+
+#[derive(Error, Debug, PartialEq)]
+pub enum PolyError {
+    #[error("subtract with overflow is not allowed")]
+    SubtractWithOverflow,
+}
+
+// #[derive(Error, Debug, PartialEq)]
+// pub enum MLPolyError {
+//     /// graph related error
+//     #[error("Poly error")]
+//     PolyError(PolyError)
+// }
 
 // TODO rename MLPoly to MLPoly
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MLPoly(pub MultiPoly);
+
+pub struct SparseTermWrapper(pub SparseTerm, pub usize);
+
+impl TryFrom<SparseTermWrapper> for Vec<(usize, usize)> {
+    type Error = PolyError;
+    fn try_from(wrapper: SparseTermWrapper) -> Result<Vec<(usize, usize)>, Self::Error> {
+        let k = wrapper.1;
+        let mut sparse_term: Vec<(usize, usize)> = Vec::new();
+        for c in wrapper.0.iter() {
+            if let Some(subtracted) = c.0.checked_sub(k) {
+                sparse_term.push((subtracted, c.1));
+            } else {
+                return Err(PolyError::SubtractWithOverflow);
+            }
+        }
+        Ok(sparse_term)
+    }
+}
 
 impl MLPoly {
     pub fn new(multi_poly: MultiPoly) -> Self {
         Self(multi_poly)
     }
 
-    pub fn neg_shift_poly_by_k(self, k: usize) -> Self {
+    pub fn neg_shift_poly_by_k(self, k: usize) -> Result<Self, PolyError> {
         let terms = &self.0.terms;
         let current_num_vars = self.0.num_vars;
         let mut shifted_terms = Vec::with_capacity(terms.len());
         for (unit, term) in terms {
-            let shifted_term = SparseTerm::new((*term).iter().map(|&c| (c.0 - k, c.1)).collect());
+            let wrapper = SparseTermWrapper(term.clone(), k);
+            let sparse_term: Vec<(usize, usize)> = wrapper.try_into()?;
+            let shifted_term = SparseTerm::new(sparse_term);
             shifted_terms.push((*unit, shifted_term));
         }
-        MultiPoly::from_coefficients_vec(current_num_vars - k, shifted_terms).into()
+        Ok(MultiPoly::from_coefficients_vec(current_num_vars - k, shifted_terms).into())
     }
 
     pub fn evaluate_variable(self, r: &Vec<ScalarField>) -> Self {
@@ -331,7 +365,7 @@ mod tests {
         ));
 
         // Shift by k=1
-        let shifted_poly = poly.neg_shift_poly_by_k(1);
+        let shifted_poly = poly.neg_shift_poly_by_k(1).unwrap();
 
         // Expected result after shift by k=1: just x^1 (the y term shifts out)
         let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
@@ -356,7 +390,7 @@ mod tests {
         ));
 
         // Shift by k=3 (too large for the number of variables)
-        let shifted_poly = poly.neg_shift_poly_by_k(3);
+        let shifted_poly = poly.neg_shift_poly_by_k(3).unwrap();
 
         // Expected result should be an empty polynomial (both variables shifted out)
         let expected = MLPoly::new(MultiPoly::from_coefficients_vec(0, vec![]));

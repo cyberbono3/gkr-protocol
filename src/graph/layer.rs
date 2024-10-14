@@ -3,7 +3,6 @@ use ark_bn254::Fr as ScalarField;
 
 use ark_poly::Polynomial;
 
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Layer {
     OutputLayer {
@@ -81,9 +80,9 @@ impl Layer {
         }
     }
 
-    pub fn w_ext_gate_eval(&self, r: &Vec<ScalarField>) -> MLPoly {
+    pub fn w_ext_gate_eval(&self, r: &Vec<ScalarField>) -> Result<MLPoly, PolyError> {
         match self {
-            Self::InputLayer { k: _, input_ext } => input_ext.clone().into(),
+            Self::InputLayer { k: _, input_ext } => Ok(input_ext.clone().into()),
             Self::InterLayer {
                 add,
                 mult,
@@ -101,12 +100,12 @@ impl Layer {
                 let left = MLPoly(add.clone()).evaluate_variable(r);
                 let right: MLPoly = (w_b + w_c).into();
                 let mut reduced_add_poly: MLPoly = left * right;
-                reduced_add_poly = reduced_add_poly.neg_shift_poly_by_k(r.len());
+                reduced_add_poly = reduced_add_poly.neg_shift_poly_by_k(r.len())?;
                 let left = MLPoly(mult.clone()).evaluate_variable(r);
                 let right = MLPoly::new(w_b.clone()) * MLPoly::new(w_c.clone());
                 let mut reduced_mult_poly = left * right;
-                reduced_mult_poly = reduced_mult_poly.neg_shift_poly_by_k(r.len());
-                reduced_add_poly + reduced_mult_poly
+                reduced_mult_poly = reduced_mult_poly.neg_shift_poly_by_k(r.len())?;
+                Ok(reduced_add_poly + reduced_mult_poly)
             }
         }
     }
@@ -248,10 +247,11 @@ mod tests {
         let w_b = mock_multipoly();
         let w_c = mock_multipoly();
 
-        let layer1 = Layer::new_inter_layer(7, 3, add.clone(), mult.clone(), w_b.clone(), w_c.clone());
-     
+        let layer1 =
+            Layer::new_inter_layer(7, 3, add.clone(), mult.clone(), w_b.clone(), w_c.clone());
 
-        let layer2 = Layer::new_inter_layer(7, 3, add.clone(), mult.clone(), w_b.clone(), w_c.clone());
+        let layer2 =
+            Layer::new_inter_layer(7, 3, add.clone(), mult.clone(), w_b.clone(), w_c.clone());
 
         assert_eq!(layer1, layer2);
     }

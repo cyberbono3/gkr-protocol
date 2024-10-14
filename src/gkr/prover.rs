@@ -10,7 +10,7 @@ use super::fiat_shamir::FiatShamir;
 use super::sumcheck::Prover as SumCheckProver;
 use crate::graph::graph::{Graph, InputValue};
 use crate::graph::node::Node;
-use crate::poly::unique_univariate_line;
+use crate::poly::{unique_univariate_line, PolyError};
 
 #[derive(Debug, Clone)]
 pub struct Prover {
@@ -45,7 +45,7 @@ impl Prover {
 
         // recursive sumchecks
         for (prev_idx, layer) in self.graph.layers[1..].iter().enumerate().rev() {
-            let f_i = layer.w_ext_gate_eval(&r_i);
+            let f_i = layer.w_ext_gate_eval(&r_i).unwrap();
             let mut sumcheck_prover = SumCheckProver::new(&f_i.0);
             sumcheck_prover.verify(m_i);
             let prev_layer = &self.graph.layers[prev_idx];
@@ -103,7 +103,7 @@ impl Prover {
 
         // recursive sumchecks
         for (prev_idx, layer) in self.graph.layers[1..].iter().enumerate().rev() {
-            let f_i = layer.w_ext_gate_eval(&r_i);
+            let f_i = layer.w_ext_gate_eval(&r_i).unwrap();
             let mut sumcheck_prover = SumCheckProver::new(&f_i.0);
             sumcheck_prover.verify(m_i);
             let prev_layer = &self.graph.layers[prev_idx];
