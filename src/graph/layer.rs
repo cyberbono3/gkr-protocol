@@ -3,28 +3,6 @@ use ark_bn254::Fr as ScalarField;
 
 use ark_poly::Polynomial;
 
-// #[derive(Debug, PartialEq, Clone)]
-// struct BaseLayer {
-//     k: usize,
-//     prev_k: usize,
-//     add: MultiPoly,
-//     mult: MultiPoly,
-//     w_b: MultiPoly,
-//     w_c: MultiPoly,
-// }
-
-// impl BaseLayer {
-//     pub fn new(k: usize, prev_k: usize, add: MultiPoly,  mult: MultiPoly,  w_b: MultiPoly, w_c: MultiPoly) -> Self {
-//         Self {
-//             k,
-//             prev_k,
-//             add,
-//             mult,
-//             w_b,
-//             w_c
-//         }
-//     }
-// }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Layer {
@@ -250,10 +228,6 @@ mod tests {
 
     #[test]
     fn test_input_layer_initialization() {
-        let add = mock_multipoly();
-        let mult = mock_multipoly();
-        let w_b = mock_multipoly();
-        let w_c = mock_multipoly();
         let prev_k = 3;
 
         let input_layer = Layer::new_input_layer(6, mock_multipoly());
