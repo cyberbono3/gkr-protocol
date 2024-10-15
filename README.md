@@ -30,6 +30,11 @@ Protocol:
 
 Summary: GKR  protocol is to avoid commiting to intermediate values of a circuit. Assumption: V knows an input.
 
+This library comes with some unit and integration tests. Run these tests with:
+```bash
+cargo test
+```
+
 
 
 
