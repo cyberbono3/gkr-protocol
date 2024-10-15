@@ -18,13 +18,6 @@ pub enum PolyError {
     SubtractWithOverflow,
 }
 
-// #[derive(Error, Debug, PartialEq)]
-// pub enum MLPolyError {
-//     /// graph related error
-//     #[error("Poly error")]
-//     PolyError(PolyError)
-// }
-
 // TODO rename MLPoly to MLPoly
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MLPoly(pub MultiPoly);
@@ -35,7 +28,7 @@ impl TryFrom<SparseTermWrapper> for Vec<(usize, usize)> {
     type Error = PolyError;
     fn try_from(wrapper: SparseTermWrapper) -> Result<Vec<(usize, usize)>, Self::Error> {
         let k = wrapper.1;
-        let mut sparse_term: Vec<(usize, usize)> = Vec::new();
+        let mut sparse_term: Vec<(usize, usize)> = Vec::with_capacity(wrapper.0.len());
         for c in wrapper.0.iter() {
             if let Some(subtracted) = c.0.checked_sub(k) {
                 sparse_term.push((subtracted, c.1));
@@ -302,23 +295,84 @@ mod tests {
     use ark_poly::polynomial::multivariate::SparseTerm;
 
     #[test]
-    fn test_mul_basic_case() {
-        // Create two multivariate polynomials
-        let poly1 = MLPoly::new(MultiPoly::from_coefficients_vec(
-            2,
-            vec![
-                (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
-                (ScalarField::one(), SparseTerm::new(vec![(1, 1)])), // y term
-            ],
-        ));
+    fn test_sparse_term_wrapper_conversion_success() {
+        // Create a SparseTerm with some values
+        let term = SparseTerm::new(vec![(3, 1), (8, 1)]);
 
-        let poly2 = MLPoly::new(MultiPoly::from_coefficients_vec(
-            2,
-            vec![
-                (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
-                (ScalarField::one(), SparseTerm::new(vec![(1, 1)])), // y term
-            ],
-        ));
+        // Create a SparseTermWrapper with k = 1
+        let wrapper = SparseTermWrapper(term, 1);
+
+        // Convert the wrapper to a Vec<(usize, usize)>
+        let result = Vec::<(usize, usize)>::try_from(wrapper);
+
+        // Expected result after subtraction
+        let expected = vec![(2, 1), (7, 1)];
+
+        // Check if the conversion was successful and matches the expected result
+        assert_eq!(result, Ok(expected));
+    }
+
+    #[test]
+    fn test_sparse_term_wrapper_conversion_overflow_error() {
+        // Create a SparseTerm where one of the values will cause an overflow
+        let term = SparseTerm::new(vec![(1, 1), (10, 1)]);
+
+        // Create a SparseTermWrapper with k = 2, which will cause an overflow on the first value
+        let wrapper = SparseTermWrapper(term, 2);
+
+        // Try converting the wrapper to a Vec<(usize, usize)>
+        let result = Vec::<(usize, usize)>::try_from(wrapper);
+
+        // Check if the result is an error and matches the SubtractWithOverflow error
+        assert_eq!(result, Err(PolyError::SubtractWithOverflow));
+    }
+
+    #[test]
+    fn test_sparse_term_wrapper_empty_term() {
+        // Create an empty SparseTerm
+        let term = SparseTerm::new(vec![]);
+
+        // Create a SparseTermWrapper with k = 2
+        let wrapper = SparseTermWrapper(term, 2);
+
+        // Convert the wrapper to a Vec<(usize, usize)>
+        let result = Vec::<(usize, usize)>::try_from(wrapper);
+
+        // Expected result is an empty vector since the SparseTerm was empty
+        let expected: Vec<(usize, usize)> = vec![];
+
+        // Check if the conversion was successful and matches the expected result
+        assert_eq!(result, Ok(expected));
+    }
+
+    #[test]
+    fn test_sparse_term_wrapper_no_overflow() {
+        // Create a SparseTerm where subtraction won't cause an overflow
+        let term = SparseTerm::new(vec![(3, 1), (5, 1)]);
+
+        // Create a SparseTermWrapper with k = 2
+        let wrapper = SparseTermWrapper(term, 2);
+
+        // Convert the wrapper to a Vec<(usize, usize)>
+        let result = Vec::<(usize, usize)>::try_from(wrapper);
+
+        // Expected result after subtraction
+        let expected = vec![(1, 1), (3, 1)];
+
+        // Check if the conversion was successful and matches the expected result
+        assert_eq!(result, Ok(expected));
+    }
+
+    #[test]
+    fn test_mul_basic_case() {
+        let term_vec = vec![
+            (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
+            (ScalarField::one(), SparseTerm::new(vec![(1, 1)])), // y term
+        ];
+        // Create two multivariate polynomials
+        let poly1: MLPoly = (MultiPoly::from_coefficients_vec(2, term_vec.clone())).into();
+
+        let poly2: MLPoly = (MultiPoly::from_coefficients_vec(2, term_vec.clone())).into();
 
         let result = poly1 * poly2;
 
