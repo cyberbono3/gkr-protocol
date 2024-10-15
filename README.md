@@ -21,11 +21,11 @@ Protocol:
 4. V checks if s_tilda(r) = y_tilda(r) holds, where s_tilda MLE computed by V, y_tilda is claimed output(MLE) by P. If it does hold, a_tilda and y_tilda are equal, so it means, polynomials are equal with the high probability, according to Schwarz-Zipper lemma.
 5. Apply sumcheck protocol to compute the sum for every layer 
 6. For instance for protocol with 3 layers, it looks like that, 
-    w_0_tilda(r) (output layet ) -> w_1_tilda(r0) (intemediate layer) -> w_2_tilda(r1) (input layer )
-    r,r0,r1 is randomness for every layer
-    w0_tilda is lagrange interpolation of gate-value function for layer 0 
-    w1_tilda is lagrange interpolation of gate-value function for layer 1
-    w2_tilda is lagrange interpolation of gate-value function for layer 2
+    - w_0_tilda(r) (output layet ) -> w_1_tilda(r0) (intemediate layer) -> w_2_tilda(r1) (input layer )
+    - r,r0,r1 is randomness for every layer
+    - w0_tilda is lagrange interpolation of gate-value function for layer 0 
+    - w1_tilda is lagrange interpolation of gate-value function for layer 1
+    - w2_tilda is lagrange interpolation of gate-value function for layer 2
 
 
 Summary: GKR  protocol is to avoid commiting to intermediate values of a circuit. Assumption: V knows an input.
