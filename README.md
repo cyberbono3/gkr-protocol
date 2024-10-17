@@ -26,7 +26,7 @@ The GKR is an interactive proof protocol widely used in ZK/Validity proofs.
 5. Apply sumcheck protocol to compute the sum for every layer 
 6. For instance for protocol with 3 layers, it looks like that, 
     - `w_0_tilda(r)` (output layet ) -> `w_1_tilda(r0)` (intemediate layer) -> `w_2_tilda(r1)` (input layer )
-    - `r`,`r0`,`r1` is randomness for every layer
+    - `r`,`r0`,`r1` is random field elements for every layer
     - `w0_tilda` is lagrange interpolation of gate-value function for layer 0 
     - `w1_tilda` is lagrange interpolation of gate-value function for layer 1
     - `w2_tilda` is lagrange interpolation of gate-value function for layer 2
