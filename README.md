@@ -33,7 +33,7 @@ The GKR is an interactive proof protocol widely used in ZK/Validity proofs.
 
 
 ## Important: 
-The whole point of GKR  protocol is to avoid committing to intermediate values of a circuit. Assumption: V knows an input.
+The whole point of GKR  protocol is to avoid committing to intermediate values of a circuit. Assumption: Without commitments, V knows an input and goes layer by layer.
 
 **WARNING**: This is an academic proof-of-concept prototype, and in particular has not received careful code review. This implementation is NOT ready for production use.
 
