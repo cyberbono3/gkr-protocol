@@ -14,8 +14,8 @@ The GKR is an interactive proof protocol widely used in ZK/Validity proofs.
     - input layer
     - intermediate layers
     - output layer
-6. For every layer gate-value finction `W` is computed
-7. Foer every layer MLE(multilinear extension) of `W` id computed 
+6. For every layer gate-value function `W` is computed
+7. For every layer MLE(multilinear extension) of `W` id computed 
 
 ## Protocol steps
 
