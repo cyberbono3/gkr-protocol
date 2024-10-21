@@ -23,7 +23,7 @@ The GKR is an interactive proof protocol widely used in ZK/Validity proofs.
 2. V picks tandom `r` from field `F`
 3. By Schwarz-Zipper lemma it is "safe" for V to belive `C(x) = y`
 4. V checks if `s_tilda(r) = y_tilda(r)` holds, where `s_tilda` MLE computed by V, `y_tilda` is claimed output(MLE) by P. If it does hold, `a_tilda` and `y_tilda` are equal. Therefore, polynomials are equal with the high probability, according to Schwarz-Zippel lemma.
-5. Apply sumcheck protocol to compute the sum for every layer 
+5. Apply sumcheck protocol (described below) to compute the sum for every layer
 6. For instance for protocol with 3 layers, it looks like that, 
     - `w_0_tilda(r)` (output layet ) -> `w_1_tilda(r0)` (intemediate layer) -> `w_2_tilda(r1)` (input layer )
     - `r`,`r0`,`r1` is random field elements for every layer
@@ -31,9 +31,33 @@ The GKR is an interactive proof protocol widely used in ZK/Validity proofs.
     - `w1_tilda` is lagrange interpolation of gate-value function for layer 1
     - `w2_tilda` is lagrange interpolation of gate-value function for layer 2
 
-
 ## Important: 
-The whole point of GKR  protocol is to avoid committing to intermediate values of a circuit. Assumption: Without commitments, V knows an input and goes layer by layer.
+The whole point of GKR  protocol is to avoid committing to intermediate values of a circuit. 
+Assumption: Without commitments, V knows an input and goes layer by layer.
+
+## Sumcheck protocol overview
+
+Let `g` be n-variate polynomial over finite field `F`. Let `g` have degree 3.
+
+Compute sum of `g(x)` over input `x = {0,1}^n`
+
+Task: offload hard work of computing a sum to prover P.
+
+This is public coin procool, so we can apply Fiat-Shamir to make it non-interactive.
+
+Procotol has of `n` rounds ( number of variables in polynomial `g`).
+
+Verifier `V` time O(n) field ops
+
+## Sumcheck protocol steps:
+
+1. `P` sends claimed answer C,  `S1(x)` claimed to be equal `h(x)  = sum of g(x) over input (x1...xn)`
+2. V picks random `r` from finite field `F` and sends it to P
+3. V checks if `S(r) = h(r)` holds. Completeness: if prover P honest, this check will pass.
+4. Repeat this process `n` rounds.
+    Soundness error <= n/|F|. As long as field F is big enouph, we keep this probability negligible.
+
+**WARNING**: This is an academic proof-of-concept prototype, and in particular has not received careful code review. This implementation is NOT ready for production use.
 
 **WARNING**: This is an academic proof-of-concept prototype, and in particular has not received careful code review. This implementation is NOT ready for production use.
 

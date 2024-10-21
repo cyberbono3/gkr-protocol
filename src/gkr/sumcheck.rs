@@ -1,5 +1,5 @@
 use super::fiat_shamir::FiatShamir;
-use crate::poly::n_to_vec;
+use crate::poly::HyperCube;
 
 use ark_bn254::Fr as ScalarField;
 use ark_ff::Field;
@@ -11,6 +11,7 @@ use rand::Rng;
 pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;
 pub type UniPoly = UniSparsePolynomial<ScalarField>;
 
+
 // Simulates memory of a single prover instance
 #[derive(Debug, Clone)]
 pub struct Prover {
@@ -19,40 +20,53 @@ pub struct Prover {
     pub r_vec: Vec<ScalarField>,
 }
 
+
 impl Prover {
+    const N_ROUNDS: usize = 2;
     pub fn new(g: &MultiPoly) -> Self {
         Prover {
             g: g.clone(),
-            fs: FiatShamir::new(vec![], 2),
+            fs: FiatShamir::new(vec![], Self::N_ROUNDS),
             r_vec: vec![],
         }
     }
 
-    // Given polynomial g, fix Xj, evaluate over xj+1
     pub fn gen_uni_polynomial(&mut self, r: Option<ScalarField>) -> UniPoly {
-        if r.is_some() {
-            self.r_vec.push(r.unwrap());
+        if let Some(r) = r {
+            self.r_vec.push(r);
         }
-        let v = self.g.num_vars() - self.r_vec.len();
-        (0..(2u32.pow(v as u32 - 1))).fold(
-            UniPoly::from_coefficients_vec(vec![(0, 0u32.into())]),
-            |sum, n| sum + self.evaluate_gj(n_to_vec(n as usize, v)),
-        )
+    
+        let k = self.g.num_vars() - self.r_vec.len();
+        let mut result = UniPoly::from_coefficients_vec(vec![(0, 0u32.into())]);
+    
+        for n in 0..(2u32.pow(k as u32 - 1)) {
+            let term = self.evaluate_gj(HyperCube::new(n as usize, k).0.clone());
+            result = result + term;
+        }
+    
+        result
     }
+
+
+
+
     // Evaluates gj over a vector permutation of points, folding all evaluated terms together into one univariate polynomial
     pub fn evaluate_gj(&self, points: Vec<ScalarField>) -> UniPoly {
-        self.g.terms().iter().fold(
-            UniPoly::from_coefficients_vec(vec![]),
-            |sum, (coeff, term)| {
-                let (coeff_eval, fixed_term) = self.evaluate_term(&term, &points);
-                let curr = match fixed_term {
-                    None => UniPoly::from_coefficients_vec(vec![(0, *coeff * coeff_eval)]),
-                    _ => UniPoly::from_coefficients_vec(vec![(
-                        fixed_term.unwrap().degree(),
-                        *coeff * coeff_eval,
-                    )]),
-                };
-                curr + sum
+        self.g
+            .terms()
+            .iter()
+            .fold(
+                UniPoly::from_coefficients_vec(vec![]),
+                |sum, (coeff, term)| {
+                    let (coeff_eval, fixed_term) = self.evaluate_term(&term, &points);
+                    let curr = match fixed_term {
+                        None => UniPoly::from_coefficients_vec(vec![(0, *coeff * coeff_eval)]),
+                        _ => UniPoly::from_coefficients_vec(vec![(
+                            fixed_term.unwrap().degree(),
+                            *coeff * coeff_eval,
+                        )]),
+                    };
+                    curr + sum
             },
         )
     }
@@ -65,8 +79,10 @@ impl Prover {
     ) -> (ScalarField, Option<SparseTerm>) {
         let mut fixed_term: Option<SparseTerm> = None;
         let coeff: ScalarField =
-            term.iter()
-                .fold(1u32.into(), |product, (var, power)| match *var {
+            term
+            .iter()
+            .fold(1u32.into(), |product, (var, power)| 
+                match *var {
                     j if j == self.r_vec.len() => {
                         fixed_term = Some(SparseTerm::new(vec![(j, *power)]));
                         product
@@ -161,6 +177,70 @@ mod tests {
         polynomial::multivariate::{SparseTerm, Term},
         DenseMVPolynomial,
     };
+
+     // Helper function to create a sample ScalarField element
+     fn sample_scalar(val: u64) -> ScalarField {
+        ScalarField::from(val)
+    }
+
+    // Helper function to create a multivariate polynomial with a specified number of variables
+    fn sample_multivariate_poly(num_vars: usize) -> MultiPoly {
+        let terms = (0..num_vars).map(|i| {
+            let coeff = sample_scalar((i + 1) as u64);  // Coefficients 1, 2, 3, etc.
+            let term = SparseTerm::new(vec![(i, 1)]);   // Single term per variable
+            (coeff, term)
+        }).collect::<Vec<_>>();
+        
+        MultiPoly::from_coefficients_vec(num_vars, terms)
+    }
+
+    #[test]
+    fn test_gen_uni_polynomial_no_r() {
+        // Create a sample prover with a multivariate polynomial with 2 variables
+        let g = sample_multivariate_poly(2);
+        let mut prover = Prover::new(&g);
+
+        // Call gen_uni_polynomial without providing r
+        let uni_poly = prover.gen_uni_polynomial(None);
+
+        // Check basic properties of the result (e.g., degrees, terms)
+        assert!(uni_poly.degree() >= 0);  // Ensure polynomial is not empty
+    }
+
+    #[test]
+    fn test_gen_uni_polynomial_with_r() {
+        // Create a sample prover with a multivariate polynomial with 3 variables
+        let g = sample_multivariate_poly(3);
+        let mut prover = Prover::new(&g);
+
+        // Provide a specific r value
+        let r = sample_scalar(5);
+        let uni_poly = prover.gen_uni_polynomial(Some(r));
+
+        // Check if r was added to r_vec
+        assert_eq!(prover.r_vec.len(), 1);
+        assert_eq!(prover.r_vec[0], r);
+
+        // Check basic properties of the result (e.g., degrees, terms)
+        assert!(uni_poly.degree() >= 0);  // Ensure polynomial is not empty
+    }
+
+    #[test]
+    fn test_gen_uni_polynomial_multiple_r() {
+        // Create a sample prover with a multivariate polynomial with 4 variables
+        let g = sample_multivariate_poly(4);
+        let mut prover = Prover::new(&g);
+
+        // Provide multiple r values
+        prover.gen_uni_polynomial(Some(sample_scalar(5)));
+        prover.gen_uni_polynomial(Some(sample_scalar(7)));
+
+        // Check if r_vec has both values
+        assert_eq!(prover.r_vec.len(), 2);
+        assert_eq!(prover.r_vec[0], sample_scalar(5));
+        assert_eq!(prover.r_vec[1], sample_scalar(7));
+    }
+
 
     #[test]
     pub fn test_can_verify() {

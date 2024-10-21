@@ -45,7 +45,7 @@ impl MLPoly {
         Self(multi_poly)
     }
 
-    pub fn neg_shift_poly_by_k(self, k: usize) -> Result<Self, PolyError> {
+    pub fn neg_shift_by_k(self, k: usize) -> Result<Self, PolyError> {
         let terms = &self.0.terms;
         let current_num_vars = self.0.num_vars;
         let mut shifted_terms = Vec::with_capacity(terms.len());
@@ -268,17 +268,32 @@ impl From<PolyInput> for MLPoly {
 pub type UniPoly = UniSparsePolynomial<ScalarField>;
 //pub struct UVPoly(pub UniPoly);
 
-// TODO to make a from trait
-// Converts i into an index in {0,1}^k
-pub fn n_to_vec(i: usize, k: usize) -> Vec<ScalarField> {
-    format!("{:0k$b}", i, k = k)
-        .chars()
-        .map(|x| if x == '1' { 1.into() } else { 0.into() })
-        .collect()
+
+
+
+//{0,1}^k
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HyperCube(pub Vec<ScalarField>);
+
+
+impl HyperCube {
+    pub fn new(n: usize, k: usize) -> Self {
+        let vec: Vec<ScalarField> = format!("{:0k$b}", n, k = k)
+            .chars()
+            .map(|x| if x == '1' { 1.into() } else { 0.into() })
+            .collect();
+        Self(vec)
+    }
+}
+
+impl From<Vec<ScalarField>> for HyperCube {
+    fn from(vec: Vec<ScalarField>) -> Self {
+        Self(vec)
+    }
 }
 
 pub fn unique_univariate_line(b: &[ScalarField], c: &[ScalarField]) -> Vec<UniPoly> {
-    let mut lines = vec![];
+    let mut lines =  Vec::with_capacity(b.iter().len());
     for (b_i, c_i) in b.iter().zip(c) {
         lines.push(UniPoly::from_coefficients_slice(&[
             (0, *b_i),
@@ -294,6 +309,111 @@ mod tests {
     use ark_bn254::Fr as ScalarField;
     use ark_ff::{BigInteger256, One};
     use ark_poly::polynomial::multivariate::SparseTerm;
+
+    #[test]
+    fn test_hyper_cube_vec_basic() {
+        // Test with i = 0 and k = 3, expecting [0, 0, 0]
+        let result = HyperCube::new(0, 3);
+        let scalar_field_vec = vec![0.into(), 0.into(), 0.into()];
+        let expected: HyperCube = scalar_field_vec.into();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_hyper_cube_single_one() {
+        // Test with i = 1 and k = 3, expecting [0, 0, 1]
+        let result = HyperCube::new(1, 3);
+        let scalar_field_vec = vec![0.into(), 0.into(), 1.into()];
+        let expected: HyperCube = scalar_field_vec.into();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_hyper_cube_to_vec_mixed_bits() {
+        // Test with i = 5 and k = 3, expecting [1, 0, 1]
+        let result =  HyperCube::new(5, 3);
+        let expected: HyperCube = vec![1.into(), 0.into(), 1.into()].into();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_hyper_cube_to_vec_full_bits() {
+        // Test with i = 7 and k = 3, expecting [1, 1, 1]
+        let result = HyperCube::new(7, 3);
+        let expected: HyperCube = vec![1.into(), 1.into(), 1.into()].into();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_hyper_cube_to_vec_large_k() {
+        // Test with i = 2 and k = 5, expecting [0, 0, 0, 1, 0]
+        let result = HyperCube::new(2, 5);
+        let expected: HyperCube = vec![0.into(), 0.into(), 0.into(), 1.into(), 0.into()].into();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_unique_univariate_line_basic() {
+        // Test with simple input arrays
+        let b: Vec<ScalarField> = vec![1.into(), 2.into()];
+        let c: Vec<ScalarField> = vec![3.into(), 4.into()];
+
+        let result = unique_univariate_line(&b, &c);
+        
+        let expected: Vec<UniSparsePolynomial<ScalarField>> = vec![
+            UniSparsePolynomial::from_coefficients_slice(&[(0, 1.into()), (1, 2.into())]),  // 1 + 2*x
+            UniSparsePolynomial::from_coefficients_slice(&[(0, 2.into()), (1, 2.into())]),  // 2 + 2*x
+        ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_unique_univariate_line_zero() {
+        // Test with zero values in arrays
+        let b: Vec<ScalarField> = vec![0.into(), 0.into()];
+        let c: Vec<ScalarField> = vec![0.into(), 0.into()];
+
+        let result = unique_univariate_line(&b, &c);
+
+        let expected: Vec<UniSparsePolynomial<ScalarField>> = vec![
+            UniSparsePolynomial::from_coefficients_slice(&[(0, 0.into()), (1, 0.into())]),  // 0 + 0*x
+            UniSparsePolynomial::from_coefficients_slice(&[(0, 0.into()), (1, 0.into())]),  // 0 + 0*x
+        ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_unique_univariate_line_mixed() {
+        // Test with mixed positive and zero values
+        let b: Vec<ScalarField> = vec![0.into(), 2.into()];
+        let c: Vec<ScalarField> = vec![1.into(), 2.into()];
+
+        let result = unique_univariate_line(&b, &c);
+
+        let expected: Vec<UniSparsePolynomial<ScalarField>> = vec![
+            UniSparsePolynomial::from_coefficients_slice(&[(0, 0.into()), (1, 1.into())]),  // 0 + 1*x
+            UniSparsePolynomial::from_coefficients_slice(&[(0, 2.into()), (1, 0.into())]),  // 2 + 0*x
+        ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_unique_univariate_line_different_lengths() {
+        // Test when b and c have different lengths
+        let b: Vec<ScalarField> = vec![1.into()];
+        let c: Vec<ScalarField> = vec![2.into(), 3.into()];
+
+        let result = unique_univariate_line(&b, &c);
+
+        let expected: Vec<UniSparsePolynomial<ScalarField>> = vec![
+            UniSparsePolynomial::from_coefficients_slice(&[(0, 1.into()), (1, 1.into())]),  // 1 + 1*x
+        ];
+
+        assert_eq!(result, expected);
+    }
 
     #[test]
     fn test_sparse_term_wrapper_conversion_success() {
@@ -443,7 +563,7 @@ mod tests {
         ));
 
         // Shift by k=1
-        let shifted_poly = poly.neg_shift_poly_by_k(1).unwrap();
+        let shifted_poly = poly.neg_shift_by_k(1).unwrap();
 
         // BigInt([2, 0, 0, 0]) is represented as ScalarField::from(2)
         let coefficient = ScalarField::from(BigInteger256::new([2, 0, 0, 0]));
@@ -471,7 +591,7 @@ mod tests {
         ));
 
         // Shift by k=3 (too large for the number of variables)
-        let shifted_poly = poly.neg_shift_poly_by_k(3);
+        let shifted_poly = poly.neg_shift_by_k(3);
 
         assert!(shifted_poly.is_err());
     }
