@@ -162,7 +162,7 @@ impl Graph {
                             // total input as current node + inbound node 1 + inbound node 2
                             let input = format!("{}{}{}", curr_string, left_string, right_string);
 
-                            let poly: MLPoly =
+                            let poly: MVPoly =
                                 Binary::new(vec![input.chars()], vec![ScalarField::from(1)]).into();
                             // polynomial_from_binary(vec![input.chars()], vec![ScalarField::from(1)]);
 
@@ -180,8 +180,8 @@ impl Graph {
 
                 let poly = prev_layer.w_ext();
 
-                let w_b = poly.shift_poly_by_k(max(k, 1));
-                let w_c = poly.shift_poly_by_k(prev_layer.k() + max(k, 1));
+                let w_b = poly.shift_by_k(max(k, 1));
+                let w_c = poly.shift_by_k(prev_layer.k() + max(k, 1));
                 if *index == &self.nodes.len() - 1 {
                     let poly_input = PolyInput::new(
                         (0..layer_nodes.len()).collect(),
@@ -191,7 +191,7 @@ impl Graph {
                             .collect(),
                         k,
                     );
-                    let output_poly: MLPoly = poly_input.into();
+                    let output_poly: MVPoly = poly_input.into();
                     Layer::OutputLayer {
                         k: get_k(layer_nodes.len()),
                         prev_k: prev_layer.k(),
@@ -220,7 +220,7 @@ impl Graph {
                         .collect(),
                     k,
                 );
-                let input_poly: MLPoly = poly_input.into();
+                let input_poly: MVPoly = poly_input.into();
                 Layer::InputLayer {
                     k: get_k(layer_nodes.len()),
                     input_ext: input_poly.0,
@@ -611,7 +611,7 @@ mod tests {
             }
         );
 
-        let poly: MLPoly = graph.layers[0].evaluation_ext().into();
+        let poly: MVPoly = graph.layers[0].evaluation_ext().into();
 
         assert_eq!(
             graph.layers[1],
@@ -631,8 +631,8 @@ mod tests {
                         )
                     ],
                 ),
-                w_b: poly.shift_poly_by_k(1).0,
-                w_c: poly.shift_poly_by_k(2).0,
+                w_b: poly.shift_by_k(1).0,
+                w_c: poly.shift_by_k(2).0,
                 d: MultiPoly::from_coefficients_vec(
                     1,
                     vec![
@@ -683,7 +683,7 @@ mod tests {
             }
         );
 
-        let poly: MLPoly = graph.layers[0].evaluation_ext().into();
+        let poly: MVPoly = graph.layers[0].evaluation_ext().into();
 
         assert_eq!(
             graph.layers[1],
@@ -703,8 +703,8 @@ mod tests {
                         )
                     ],
                 ),
-                w_b: poly.shift_poly_by_k(1).0,
-                w_c: poly.shift_poly_by_k(2).0,
+                w_b: poly.shift_by_k(1).0,
+                w_c: poly.shift_by_k(2).0,
                 d: MultiPoly::from_coefficients_vec(
                     1,
                     vec![
@@ -755,7 +755,7 @@ mod tests {
             }
         );
 
-        let poly: MLPoly = graph.layers[0].evaluation_ext().into();
+        let poly: MVPoly = graph.layers[0].evaluation_ext().into();
         assert_eq!(
             graph.layers[1],
             Layer::OutputLayer {
@@ -783,8 +783,8 @@ mod tests {
                         )
                     ],
                 ),
-                w_b: poly.shift_poly_by_k(1).0,
-                w_c: poly.shift_poly_by_k(2).0,
+                w_b: poly.shift_by_k(1).0,
+                w_c: poly.shift_by_k(2).0,
                 d: MultiPoly::from_coefficients_vec(
                     1,
                     vec![

@@ -80,7 +80,7 @@ impl Layer {
         }
     }
 
-    pub fn w_ext_gate_eval(&self, r: &Vec<ScalarField>) -> Result<MLPoly, PolyError> {
+    pub fn w_ext_gate_eval(&self, r: &Vec<ScalarField>) -> Result<MVPoly, PolyError> {
         match self {
             Self::InputLayer { k: _, input_ext } => Ok(input_ext.clone().into()),
             Self::InterLayer {
@@ -97,12 +97,12 @@ impl Layer {
                 w_c,
                 ..
             } => {
-                let left = MLPoly(add.clone()).evaluate_variable(r);
-                let right: MLPoly = (w_b + w_c).into();
-                let mut reduced_add_poly: MLPoly = left * right;
+                let left = MVPoly(add.clone()).evaluate_variable(r);
+                let right: MVPoly = (w_b + w_c).into();
+                let mut reduced_add_poly: MVPoly = left * right;
                 reduced_add_poly = reduced_add_poly.neg_shift_by_k(r.len())?;
-                let left = MLPoly(mult.clone()).evaluate_variable(r);
-                let right = MLPoly::new(w_b.clone()) * MLPoly::new(w_c.clone());
+                let left = MVPoly(mult.clone()).evaluate_variable(r);
+                let right = MVPoly::new(w_b.clone()) * MVPoly::new(w_c.clone());
                 let mut reduced_mult_poly = left * right;
                 reduced_mult_poly = reduced_mult_poly.neg_shift_by_k(r.len())?;
                 Ok(reduced_add_poly + reduced_mult_poly)
@@ -110,7 +110,7 @@ impl Layer {
         }
     }
 
-    pub fn w_ext(&self) -> MLPoly {
+    pub fn w_ext(&self) -> MVPoly {
         match self {
             Self::InputLayer { k: _, input_ext } => input_ext.clone().into(),
             Self::InterLayer {
@@ -131,10 +131,10 @@ impl Layer {
                 ..
             } => {
                 //let f = mult_poly(add, &(w_b + w_c)) + mult_poly(mult, &mult_poly(&w_b, &w_c));
-                let add_poly = MLPoly(add.clone());
-                let right_poly1: MLPoly = (w_b + w_c).into();
-                let mult_poly = MLPoly(mult.clone());
-                let right_poly2: MLPoly = MLPoly(w_b.clone()) * MLPoly(w_c.clone());
+                let add_poly = MVPoly(add.clone());
+                let right_poly1: MVPoly = (w_b + w_c).into();
+                let mult_poly = MVPoly(mult.clone());
+                let right_poly2: MVPoly = MVPoly(w_b.clone()) * MVPoly(w_c.clone());
                 let f = (add_poly + right_poly1) + (mult_poly * right_poly2);
                 f.sum_last_k_var(2 * prev_k)
             }

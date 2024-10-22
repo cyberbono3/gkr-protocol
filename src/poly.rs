@@ -18,9 +18,9 @@ pub enum PolyError {
     SubtractWithOverflow,
 }
 
-// TODO rename MLPoly to MLPoly
+// TODO rename MVPoly to MVPoly
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MLPoly(pub MultiPoly);
+pub struct MVPoly(pub MultiPoly);
 
 pub struct SparseTermWrapper(pub SparseTerm, pub usize);
 
@@ -40,7 +40,7 @@ impl TryFrom<SparseTermWrapper> for Vec<(usize, usize)> {
     }
 }
 
-impl MLPoly {
+impl MVPoly {
     pub fn new(multi_poly: MultiPoly) -> Self {
         Self(multi_poly)
     }
@@ -113,7 +113,7 @@ impl MLPoly {
         ))
     }
 
-    pub fn shift_poly_by_k(&self, k: usize) -> Self {
+    pub fn shift_by_k(&self, k: usize) -> Self {
         let terms = &self.0.terms;
         let current_num_vars = self.0.num_vars;
         let mut shifted_terms = Vec::with_capacity(terms.len());
@@ -145,13 +145,13 @@ impl MLPoly {
     }
 }
 
-impl From<MultiPoly> for MLPoly {
+impl From<MultiPoly> for MVPoly {
     fn from(multi: MultiPoly) -> Self {
         Self(multi)
     }
 }
 
-impl Mul for MLPoly {
+impl Mul for MVPoly {
     type Output = Self;
     fn mul(self, other: Self) -> Self::Output {
         let p1_terms = self.0.terms;
@@ -165,11 +165,11 @@ impl Mul for MLPoly {
                 mult_terms.push((unit_1 * unit_2, SparseTerm::new(mult_term)));
             }
         }
-        MLPoly::new(MultiPoly::from_coefficients_vec(num_vars, mult_terms))
+        MVPoly::new(MultiPoly::from_coefficients_vec(num_vars, mult_terms))
     }
 }
 
-impl Add for MLPoly {
+impl Add for MVPoly {
     type Output = Self;
     fn add(self, other: Self) -> Self {
         (self.0 + other.0).into()
@@ -187,7 +187,7 @@ impl<'a> Binary<'a> {
     }
 }
 
-impl<'a> From<Binary<'a>> for MLPoly {
+impl<'a> From<Binary<'a>> for MVPoly {
     fn from(binary: Binary<'a>) -> Self {
         let mut terms: Vec<(ScalarField, SparseTerm)> = Vec::with_capacity(binary.inputs.len());
         let num_vars = binary
@@ -251,7 +251,7 @@ impl PolyInput {
     }
 }
 
-impl From<PolyInput> for MLPoly {
+impl From<PolyInput> for MVPoly {
     fn from(input: PolyInput) -> Self {
         let k = input.k;
         let str_vec: Vec<String> = input
@@ -491,14 +491,14 @@ mod tests {
             (ScalarField::one(), SparseTerm::new(vec![(1, 1)])), // y term
         ];
         // Create two multivariate polynomials
-        let poly1: MLPoly = (MultiPoly::from_coefficients_vec(2, term_vec.clone())).into();
+        let poly1: MVPoly = (MultiPoly::from_coefficients_vec(2, term_vec.clone())).into();
 
-        let poly2: MLPoly = (MultiPoly::from_coefficients_vec(2, term_vec.clone())).into();
+        let poly2: MVPoly = (MultiPoly::from_coefficients_vec(2, term_vec.clone())).into();
 
         let result = poly1 * poly2;
 
         // Expected result should be polynomial multiplication output
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 2)])), // x^2 term
@@ -514,23 +514,23 @@ mod tests {
     #[test]
     fn test_mul_zero() {
         // Multiply a polynomial by zero
-        let poly1 = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly1 = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![(ScalarField::one(), SparseTerm::new(vec![(0, 1)]))],
         ));
 
-        let zero_poly = MLPoly::new(MultiPoly::from_coefficients_vec(2, vec![]));
+        let zero_poly = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![]));
 
         let result = poly1 * zero_poly;
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(2, vec![]));
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(2, vec![]));
 
         assert_eq!(result, expected);
     }
 
     // #[test]
-    // fn test_neg_shift_poly_by_k_basic() {
+    // fn test_neg_shift_by_k_basic() {
     //     // Polynomial: x^1 + y^1
-    //     let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+    //     let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
     //         2,
     //         vec![
     //             (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -539,10 +539,10 @@ mod tests {
     //     ));
 
     //     // Shift by k=1
-    //     let shifted_poly = poly.neg_shift_poly_by_k(1).unwrap();
+    //     let shifted_poly = poly.neg_shift_by_k(1).unwrap();
 
     //     // Expected result after shift by k=1: just x^1 (the y term shifts out)
-    //     let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+    //     let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
     //         1,
     //         vec![
     //             (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term after shift
@@ -552,9 +552,9 @@ mod tests {
     //     assert_eq!(shifted_poly, expected);
     // }
     #[test]
-    fn test_neg_shift_poly_by_k_basic() {
+    fn test_neg_shift_by_k_basic() {
         // Polynomial: x^2 (index 1) + y^2 (index 1)
-        let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(1, 2)])),
@@ -574,15 +574,15 @@ mod tests {
         // Create the multivariate polynomial using from_coefficients_vec
         let multi_poly = MultiPoly::from_coefficients_vec(1, vec![(coefficient, term)]);
 
-        // Wrap it in MLPoly
-        let expected = MLPoly::new(multi_poly);
+        // Wrap it in MVPoly
+        let expected = MVPoly::new(multi_poly);
 
         assert_eq!(shifted_poly, expected);
     }
     #[test]
-    fn test_neg_shift_poly_by_k_large_shift() {
+    fn test_neg_shift_by_k_large_shift() {
         // Polynomial: x^1 + y^1
-        let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -599,7 +599,7 @@ mod tests {
     #[test]
     fn test_evaluate_variable_basic() {
         // Polynomial: x^1 + y^1
-        let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -612,7 +612,7 @@ mod tests {
             poly.evaluate_variable(&vec![ScalarField::from(2u32), ScalarField::from(3u32)]);
 
         // Expected result: 2x + 3y evaluated at x=2, y=3 -> 2 + 3 = 5
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             0,
             vec![
                 (ScalarField::from(5u32), SparseTerm::new(vec![])), // Constant term 5
@@ -625,7 +625,7 @@ mod tests {
     #[test]
     fn test_evaluate_variable_partial() {
         // Polynomial: x^1 + z^1
-        let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
             3,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -637,7 +637,7 @@ mod tests {
         let evaluation = poly.evaluate_variable(&vec![ScalarField::from(2u32)]);
 
         // Expected result: x = 2, z term unevaluated
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             3,
             vec![
                 (ScalarField::from(2u32), SparseTerm::new(vec![])), // Constant term 2 from x
@@ -651,7 +651,7 @@ mod tests {
     #[test]
     fn test_sum_last_k_var_basic() {
         // Polynomial: x^1 + y^1 + z^1
-        let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
             3,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -679,8 +679,8 @@ mod tests {
         // Create the multivariate polynomial using from_coefficients_vec
         let multi_poly = MultiPoly::from_coefficients_vec(2, vec![constant_term, x1_term, x0_term]);
 
-        // Wrap it in MLPoly
-        let expected = MLPoly::new(multi_poly);
+        // Wrap it in MVPoly
+        let expected = MVPoly::new(multi_poly);
 
         assert_eq!(summed_poly, expected);
     }
@@ -689,7 +689,7 @@ mod tests {
     // #[test]
     // fn test_sum_last_k_var_no_var() {
     //     // Polynomial: x^1 + y^1
-    //     let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+    //     let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
     //         2,
     //         vec![
     //             (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -713,7 +713,7 @@ mod tests {
     // #[test]
     // fn test_sum_last_k_var_large_k() {
     //     // Polynomial: x^1 + y^1
-    //     let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+    //     let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
     //         2,
     //         vec![
     //             (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -725,7 +725,7 @@ mod tests {
     //     let summed_poly = poly.sum_last_k_var(3);
 
     //     // Expected result: empty polynomial (all variables summed out)
-    //     let expected = MLPoly::new(MultiPoly::from_coefficients_vec(0, vec![]));
+    //     let expected = MVPoly::new(MultiPoly::from_coefficients_vec(0, vec![]));
 
     //     assert_eq!(summed_poly, expected);
     // }
@@ -734,7 +734,7 @@ mod tests {
     // #[test]
     // fn test_sum_last_k_var_partial() {
     //     // Polynomial: x^1 + y^1 + z^1
-    //     let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+    //     let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
     //         3,
     //         vec![
     //             (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -747,7 +747,7 @@ mod tests {
     //     let summed_poly = poly.sum_last_k_var(2);
 
     //     // Expected result: just x^1, y and z summed out
-    //     let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+    //     let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
     //         1,
     //         vec![
     //             (ScalarField::from(2u32), SparseTerm::new(vec![(0, 1)])), // x term with y and z summed out
@@ -758,14 +758,14 @@ mod tests {
     // }
 
     #[test]
-    fn test_binary_to_MLPoly_single_input() {
+    fn test_binary_to_MVPoly_single_input() {
         // Binary: input "10", eval 1
         let inputs = vec!["10".chars()];
         let evals = vec![ScalarField::one()];
         let binary = Binary { inputs, evals };
 
         // Expected polynomial: 1 * (x_0 * (1 - x_1))
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),
@@ -773,13 +773,13 @@ mod tests {
             ],
         ));
 
-        let ml_poly = MLPoly::from(binary);
+        let ml_poly = MVPoly::from(binary);
 
         assert_eq!(ml_poly, expected);
     }
 
     #[test]
-    fn test_binary_to_MLPoly_multiple_inputs() {
+    fn test_binary_to_MVPoly_multiple_inputs() {
         // Binary: inputs "10", "01", evals 1, -1
         let inputs = vec!["10".chars(), "01".chars()];
         let evals = vec![ScalarField::one(), -ScalarField::one()];
@@ -787,7 +787,7 @@ mod tests {
 
         // Expected polynomial:
         // 1 * (x_0 * (1 - x_1)) + (-1) * ((1 - x_0) * x_1)
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])),
@@ -797,20 +797,20 @@ mod tests {
             ],
         ));
 
-        let ml_poly = MLPoly::from(binary);
+        let ml_poly = MVPoly::from(binary);
 
         assert_eq!(ml_poly, expected);
     }
 
     #[test]
-    fn test_binary_to_MLPoly_all_zeros() {
+    fn test_binary_to_MVPoly_all_zeros() {
         // Binary: input "00", eval 1
         let inputs = vec!["00".chars()];
         let evals = vec![ScalarField::one()];
         let binary = Binary { inputs, evals };
 
         // Expected polynomial: 1 * (1 - x_0) * (1 - x_1)
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![])),
@@ -820,33 +820,33 @@ mod tests {
             ],
         ));
 
-        let ml_poly = MLPoly::from(binary);
+        let ml_poly = MVPoly::from(binary);
 
         assert_eq!(ml_poly, expected);
     }
 
     #[test]
-    fn test_binary_to_MLPoly_all_ones() {
+    fn test_binary_to_MVPoly_all_ones() {
         // Binary: input "11", eval 1
         let inputs = vec!["11".chars()];
         let evals = vec![ScalarField::one()];
         let binary = Binary { inputs, evals };
 
         // Expected polynomial: 1 * (x_0 * x_1)
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![(ScalarField::one(), SparseTerm::new(vec![(0, 1), (1, 1)]))],
         ));
 
-        let ml_poly = MLPoly::from(binary);
+        let ml_poly = MVPoly::from(binary);
 
         assert_eq!(ml_poly, expected);
     }
 
     #[test]
-    fn test_shift_poly_by_k_basic() {
+    fn test_shift_by_k_basic() {
         // Polynomial: x^1 + y^1
-        let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -855,10 +855,10 @@ mod tests {
         ));
 
         // Shift by k=1
-        let shifted_poly = poly.shift_poly_by_k(1);
+        let shifted_poly = poly.shift_by_k(1);
 
         // Expected result: x^1 -> z^1, y^1 -> (z+1)^1
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             3,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(1, 1)])), // shifted x term
@@ -870,9 +870,9 @@ mod tests {
     }
 
     #[test]
-    fn test_shift_poly_by_k_large_shift() {
+    fn test_shift_by_k_large_shift() {
         // Polynomial: x^1
-        let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
             1,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -880,10 +880,10 @@ mod tests {
         ));
 
         // Shift by k=3
-        let shifted_poly = poly.shift_poly_by_k(3);
+        let shifted_poly = poly.shift_by_k(3);
 
         // Expected result: x^1 -> (z+3)^1
-        let expected = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
             4,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(3, 1)])), // shifted x term
@@ -894,9 +894,9 @@ mod tests {
     }
 
     #[test]
-    fn test_shift_poly_by_k_zero_shift() {
+    fn test_shift_by_k_zero_shift() {
         // Polynomial: x^1 + y^1
-        let poly = MLPoly::new(MultiPoly::from_coefficients_vec(
+        let poly = MVPoly::new(MultiPoly::from_coefficients_vec(
             2,
             vec![
                 (ScalarField::one(), SparseTerm::new(vec![(0, 1)])), // x term
@@ -905,7 +905,7 @@ mod tests {
         ));
 
         // Shift by k=0 (no shift)
-        let shifted_poly = poly.shift_poly_by_k(0);
+        let shifted_poly = poly.shift_by_k(0);
 
         // Expected result: same as original
         let expected = poly.clone();
