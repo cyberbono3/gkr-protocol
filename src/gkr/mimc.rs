@@ -139,10 +139,8 @@ mod tests {
         assert_eq!(h1, ScalarField::from_str(&expected.to_string()).unwrap());
 
         let b3: ScalarField = ScalarField::from(3);
-        let mut arr: Vec<ScalarField> = Vec::new();
-        arr.push(b1.clone());
-        arr.push(b2.clone());
-        arr.push(b3.clone());
+        let arr: Vec<ScalarField> = vec![b1, b2, b3];
+      
         let h1 = mimc7.multi_hash(arr, &ScalarField::zero());
         let expected = BigInt::parse_bytes(
             b"25f5a6429a9764564be3955e6f56b0b9143c571528fd30a80ae6c27dc8b4a40c",
@@ -156,8 +154,7 @@ mod tests {
         let b78: ScalarField = ScalarField::from(78);
         let b41: ScalarField = ScalarField::from(41);
 
-        let mut big_arr1: Vec<ScalarField> = Vec::new();
-        big_arr1.push(b12.clone());
+        let big_arr1: Vec<ScalarField> = vec![b12];
         let mimc7 = Mimc7::new(91);
         let h1 = mimc7.multi_hash(big_arr1, &ScalarField::zero());
         let expected = BigInt::parse_bytes(
@@ -175,9 +172,7 @@ mod tests {
         .unwrap();
         assert_eq!(mh2, ScalarField::from_str(&expected.to_string()).unwrap());
 
-        let mut big_arr1: Vec<ScalarField> = Vec::new();
-        big_arr1.push(b78.clone());
-        big_arr1.push(b41.clone());
+        let big_arr1: Vec<ScalarField> = vec![b78, b41];
         let h2 = mimc7.multi_hash(big_arr1, &ScalarField::zero());
         let expected = BigInt::parse_bytes(
             b"067f3202335ea256ae6e6aadcd2d5f7f4b06a00b2d1e0de903980d5ab552dc70",
@@ -186,9 +181,7 @@ mod tests {
         .unwrap();
         assert_eq!(h2, ScalarField::from_str(&expected.to_string()).unwrap());
 
-        let mut big_arr1: Vec<ScalarField> = Vec::new();
-        big_arr1.push(b12.clone());
-        big_arr1.push(b45.clone());
+        let big_arr1: Vec<ScalarField> = vec![b12, b45];
         let h1 = mimc7.multi_hash(big_arr1, &ScalarField::zero());
         let expected = BigInt::parse_bytes(
             b"15ff7fe9793346a17c3150804bcb36d161c8662b110c50f55ccb7113948d8879",
@@ -197,11 +190,7 @@ mod tests {
         .unwrap();
         assert_eq!(h1, ScalarField::from_str(&expected.to_string()).unwrap());
 
-        let mut big_arr1: Vec<ScalarField> = Vec::new();
-        big_arr1.push(b12.clone());
-        big_arr1.push(b45.clone());
-        big_arr1.push(b78.clone());
-        big_arr1.push(b41.clone());
+        let big_arr1: Vec<ScalarField> = vec![b12, b45, b78, b41];
         let mimc7 = Mimc7::new(91);
         let h1 = mimc7.multi_hash(big_arr1, &ScalarField::zero());
         let expected = BigInt::parse_bytes(
@@ -216,8 +205,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut big_arr1: Vec<ScalarField> = Vec::new();
-        big_arr1.push(r_1.clone());
+        let big_arr1: Vec<ScalarField> = vec![r_1];
         let mimc7 = Mimc7::new(91);
         let h1 = mimc7.multi_hash(big_arr1, &ScalarField::zero());
         let expected = BigInt::parse_bytes(
