@@ -67,7 +67,7 @@ impl Prover {
     pub fn evaluate_term(
         &self,
         term: &SparseTerm,
-        point: &Vec<ScalarField>,
+        point: &[ScalarField],
     ) -> (ScalarField, Option<SparseTerm>) {
         let mut fixed_term: Option<SparseTerm> = None;
         let coeff: ScalarField =
