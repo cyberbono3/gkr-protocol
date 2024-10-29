@@ -10,7 +10,7 @@ use super::fiat_shamir::FiatShamir;
 use super::sumcheck::Prover as SumCheckProver;
 use crate::graph::graph::{Graph, InputValue};
 use crate::graph::node::Node;
-use crate::poly::{unique_univariate_line, PolyError};
+use crate::poly::unique_univariate_line;
 
 #[derive(Debug, Clone)]
 pub struct Prover {
@@ -21,14 +21,10 @@ pub struct Prover {
 
 impl Prover {
     pub fn new(nodes: Vec<&Node>, mut values: Vec<InputValue>) -> Result<Self, GKRError> {
-        let mut graph = Graph::try_from(nodes).map_err(|e| GKRError::GraphError(e))?;
+        let mut graph = Graph::try_from(nodes)?;
         values.sort_by_key(|x| x.id);
-        graph
-            .forward(values.clone())
-            .map_err(|e| GKRError::GraphError(e))?;
-        graph
-            .get_multivariate_extension()
-            .map_err(|e| GKRError::GraphError(e))?;
+        graph.forward(values.clone())?;
+        graph.get_multivariate_extension()?;
         Ok(Self {
             graph,
             fs: FiatShamir::new(values.iter().map(|x| x.value).collect(), 2),
@@ -72,7 +68,7 @@ impl Prover {
             );
 
             let poly = prev_layer.w_ext();
-            let restricted_poly = poly.restrict_poly_to_line(&lines);
+            let restricted_poly = poly.restrict_to_line(&lines);
 
             assert_eq!(
                 f_i.0.evaluate(&sumcheck_prover.r_vec),
@@ -129,7 +125,7 @@ impl Prover {
                     .collect::<Vec<ScalarField>>()
             );
             let poly = prev_layer.w_ext();
-            let restricted_poly = poly.restrict_poly_to_line(&lines);
+            let restricted_poly = poly.restrict_to_line(&lines);
 
             assert_eq!(
                 f_i.0.evaluate(&sumcheck_prover.r_vec),

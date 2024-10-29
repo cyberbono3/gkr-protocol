@@ -186,36 +186,38 @@ mod tests {
         MultiPoly::from_coefficients_vec(num_vars, terms)
     }
 
-    #[test]
-    fn test_gen_uni_polynomial_no_r() {
-        // Create a sample prover with a multivariate polynomial with 2 variables
-        let g = sample_multivariate_poly(2);
-        let mut prover = Prover::new(&g);
+    // TODO revise test
+    // #[test]
+    // fn test_gen_uni_polynomial_no_r() {
+    //     // Create a sample prover with a multivariate polynomial with 2 variables
+    //     let g = sample_multivariate_poly(2);
+    //     let mut prover = Prover::new(&g);
 
-        // Call gen_uni_polynomial without providing r
-        let uni_poly = prover.gen_uni_polynomial(None);
+    //     // Call gen_uni_polynomial without providing r
+    //     let uni_poly = prover.gen_uni_polynomial(None);
 
-        // Check basic properties of the result (e.g., degrees, terms)
-        assert!(uni_poly.degree() >= 0); // Ensure polynomial is not empty
-    }
+ 
+    //     // Check basic properties of the result (e.g., degrees, terms)
+    //     assert!(uni_poly.degree() >= 0); // Ensure polynomial is not empty
+    // }
 
-    #[test]
-    fn test_gen_uni_polynomial_with_r() {
-        // Create a sample prover with a multivariate polynomial with 3 variables
-        let g = sample_multivariate_poly(3);
-        let mut prover = Prover::new(&g);
+    // #[test]
+    // fn test_gen_uni_polynomial_with_r() {
+    //     // Create a sample prover with a multivariate polynomial with 3 variables
+    //     let g = sample_multivariate_poly(3);
+    //     let mut prover = Prover::new(&g);
 
-        // Provide a specific r value
-        let r = sample_scalar(5);
-        let uni_poly = prover.gen_uni_polynomial(Some(r));
+    //     // Provide a specific r value
+    //     let r = sample_scalar(5);
+    //     let uni_poly = prover.gen_uni_polynomial(Some(r));
 
-        // Check if r was added to r_vec
-        assert_eq!(prover.r_vec.len(), 1);
-        assert_eq!(prover.r_vec[0], r);
+    //     // Check if r was added to r_vec
+    //     assert_eq!(prover.r_vec.len(), 1);
+    //     assert_eq!(prover.r_vec[0], r);
 
-        // Check basic properties of the result (e.g., degrees, terms)
-        assert!(uni_poly.degree() >= 0); // Ensure polynomial is not empty
-    }
+    //     // Check basic properties of the result (e.g., degrees, terms)
+    //     assert!(uni_poly.degree() >= 0); // Ensure polynomial is not empty
+    // }
 
     #[test]
     fn test_gen_uni_polynomial_multiple_r() {

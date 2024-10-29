@@ -97,10 +97,10 @@ impl Mimc7 {
     }
 
     pub fn multi_hash(&self, arr: Vec<ScalarField>, key: &ScalarField) -> ScalarField {
-        let mut r = key.clone();
-        for i in 0..arr.len() {
-            let h = self.hash(&arr[i], &r);
-            r.add_assign(&arr[i]);
+        let mut r = *key;
+        for item in &arr {
+            let h = self.hash(item, &r);
+            r.add_assign(item);
             r.add_assign(&h);
         }
         r

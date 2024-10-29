@@ -18,7 +18,6 @@ pub enum PolyError {
     SubtractWithOverflow,
 }
 
-// TODO rename MVPoly to MVPoly
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MVPoly(pub MultiPoly);
 
@@ -57,7 +56,7 @@ impl MVPoly {
         Ok(MultiPoly::from_coefficients_vec(current_num_vars - k, shifted_terms).into())
     }
 
-    pub fn evaluate_variable(self, r: &Vec<ScalarField>) -> Self {
+    pub fn evaluate_variable(self, r: &[ScalarField]) -> Self {
         if self.0.is_zero() {
             return Self(self.0.clone());
         }
@@ -127,7 +126,7 @@ impl MVPoly {
         ))
     }
 
-    pub fn restrict_poly_to_line(&self, line: &[UniPoly]) -> UniPoly {
+    pub fn restrict_to_line(&self, line: &[UniPoly]) -> UniPoly {
         let mut restricted_poly = UniPoly::zero();
         for (unit, term) in &self.0.terms {
             let variables: Vec<_> = (*term).to_vec();
@@ -909,5 +908,5 @@ mod tests {
         assert_eq!(shifted_poly, expected);
     }
 
-    // TODO Add tests restrict_poly_to_line
+    // TODO Add tests restrict_to_line
 }
