@@ -80,7 +80,7 @@ impl Layer {
         }
     }
 
-    pub fn w_ext_gate_eval(&self, r: &Vec<ScalarField>) -> Result<MVPoly, PolyError> {
+    pub fn w_ext_gate_eval(&self, r: &[ScalarField]) -> Result<MVPoly, PolyError> {
         match self {
             Self::InputLayer { k: _, input_ext } => Ok(input_ext.clone().into()),
             Self::InterLayer {
@@ -143,14 +143,14 @@ impl Layer {
 
     pub fn w_ext_line_restricted_values(
         &self,
-        r: &Vec<ScalarField>,
+        r: &[ScalarField],
         q0: ScalarField,
         q1: ScalarField,
     ) -> ScalarField {
         match self {
             Self::InputLayer { .. } => panic!(),
             Self::InterLayer { add, mult, .. } | Self::OutputLayer { add, mult, .. } => {
-                add.evaluate(r) * (q0 + q1) + mult.evaluate(r) * (q0 * q1)
+                add.evaluate(&r.to_vec()) * (q0 + q1) + mult.evaluate(&r.to_vec()) * (q0 * q1)
             }
         }
     }
@@ -183,20 +183,11 @@ mod tests {
 
         let output_layer = Layer::new_output_layer(10, 5, add, mult, w_b, w_c, d);
 
-        match output_layer {
-            Layer::OutputLayer {
-                k,
-                prev_k,
-                add: _,
-                mult: _,
-                w_b: _,
-                w_c: _,
-                d: _,
-            } => {
-                assert_eq!(k, 10);
-                assert_eq!(prev_k, 5);
-            }
-            _ => panic!("Layer was not correctly initialized as OutputLayer"),
+        if let Layer::OutputLayer { k, prev_k, .. } = output_layer {
+            assert_eq!(k, 10);
+            assert_eq!(prev_k, 5);
+        } else {
+            panic!("Layer was not correctly initialized as OutputLayer");
         }
     }
 
@@ -209,19 +200,11 @@ mod tests {
 
         let inter_layer = Layer::new_inter_layer(8, 4, add, mult, w_b, w_c);
 
-        match inter_layer {
-            Layer::InterLayer {
-                k,
-                prev_k,
-                add: _,
-                mult: _,
-                w_b: _,
-                w_c: _,
-            } => {
-                assert_eq!(k, 8);
-                assert_eq!(prev_k, 4);
-            }
-            _ => panic!("Layer was not correctly initialized as InterLayer"),
+        if let Layer::InterLayer { k, prev_k, .. } = inter_layer {
+            assert_eq!(k, 8);
+            assert_eq!(prev_k, 4);
+        } else {
+            panic!("Layer was not correctly initialized as InterLayer");
         }
     }
 
@@ -231,12 +214,11 @@ mod tests {
 
         let input_layer = Layer::new_input_layer(6, mock_multipoly());
 
-        match input_layer {
-            Layer::InputLayer { k, .. } => {
-                assert_eq!(k, 6);
-                assert_eq!(prev_k, 3);
-            }
-            _ => panic!("Layer was not correctly initialized as InputLayer"),
+        if let Layer::InputLayer { k, .. } = input_layer {
+            assert_eq!(k, 6);
+            assert_eq!(prev_k, 3);
+        } else {
+            panic!("Layer was not correctly initialized as InputLayer")
         }
     }
 

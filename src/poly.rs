@@ -25,15 +25,14 @@ pub struct SparseTermWrapper(pub SparseTerm, pub usize);
 
 impl TryFrom<SparseTermWrapper> for Vec<(usize, usize)> {
     type Error = PolyError;
-    fn try_from(wrapper: SparseTermWrapper) -> Result<Vec<(usize, usize)>, Self::Error> {
-        let k = wrapper.1;
-        let mut sparse_term: Vec<(usize, usize)> = Vec::with_capacity(wrapper.0.len());
-        for c in wrapper.0.iter() {
-            if let Some(subtracted) = c.0.checked_sub(k) {
-                sparse_term.push((subtracted, c.1));
-            } else {
-                return Err(PolyError::SubtractWithOverflow);
-            }
+    fn try_from(
+        SparseTermWrapper(sp_term, k): SparseTermWrapper,
+    ) -> Result<Vec<(usize, usize)>, Self::Error> {
+        let mut sparse_term: Vec<(usize, usize)> = Vec::with_capacity(sp_term.len());
+
+        for &(var, pow) in sp_term.iter() {
+            let subtracted = var.checked_sub(k).ok_or(PolyError::SubtractWithOverflow)?;
+            sparse_term.push((subtracted, pow));
         }
         Ok(sparse_term)
     }
@@ -68,7 +67,7 @@ impl MVPoly {
             for (var, power) in (*term).iter() {
                 if var < &r.len() {
                     for _ in 0..*power {
-                        new_unit = new_unit * r[*var];
+                        new_unit *= r[*var];
                     }
                 } else {
                     new_term.push((*var, *power));
@@ -202,7 +201,7 @@ impl<'a> From<Binary<'a>> for MVPoly {
             for (idx, char) in input.clone().enumerate() {
                 // x_i
                 if char == '1' {
-                    if current_term.len() == 0 {
+                    if current_term.is_empty() {
                         current_term.append(&mut vec![(unit, SparseTerm::new(vec![(idx, 1)]))])
                     } else {
                         for term in &mut current_term {
@@ -214,7 +213,7 @@ impl<'a> From<Binary<'a>> for MVPoly {
                 }
                 // 1 - x_i
                 else if char == '0' {
-                    if current_term.len() == 0 {
+                    if current_term.is_empty() {
                         current_term.append(&mut vec![
                             (unit, SparseTerm::new(vec![])),
                             (-unit, SparseTerm::new(vec![(idx, 1)])),
@@ -604,7 +603,7 @@ mod tests {
 
         // Evaluate x=2, y=3
         let evaluation =
-            poly.evaluate_variable(&vec![ScalarField::from(2u32), ScalarField::from(3u32)]);
+            poly.evaluate_variable(&[ScalarField::from(2u32), ScalarField::from(3u32)]);
 
         // Expected result: 2x + 3y evaluated at x=2, y=3 -> 2 + 3 = 5
         let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
@@ -629,7 +628,7 @@ mod tests {
         ));
 
         // Evaluate x=2, leaving z unevaluated
-        let evaluation = poly.evaluate_variable(&vec![ScalarField::from(2u32)]);
+        let evaluation = poly.evaluate_variable(&[ScalarField::from(2u32)]);
 
         // Expected result: x = 2, z term unevaluated
         let expected = MVPoly::new(MultiPoly::from_coefficients_vec(
@@ -753,7 +752,7 @@ mod tests {
     // }
 
     #[test]
-    fn test_binary_to_MVPoly_single_input() {
+    fn test_binary_to_mvpoly_single_input() {
         // Binary: input "10", eval 1
         let inputs = vec!["10".chars()];
         let evals = vec![ScalarField::one()];
@@ -774,7 +773,7 @@ mod tests {
     }
 
     #[test]
-    fn test_binary_to_MVPoly_multiple_inputs() {
+    fn test_binary_to_mvpoly_multiple_inputs() {
         // Binary: inputs "10", "01", evals 1, -1
         let inputs = vec!["10".chars(), "01".chars()];
         let evals = vec![ScalarField::one(), -ScalarField::one()];
@@ -798,7 +797,7 @@ mod tests {
     }
 
     #[test]
-    fn test_binary_to_MVPoly_all_zeros() {
+    fn test_binary_to_mvpoly_all_zeros() {
         // Binary: input "00", eval 1
         let inputs = vec!["00".chars()];
         let evals = vec![ScalarField::one()];
@@ -821,7 +820,7 @@ mod tests {
     }
 
     #[test]
-    fn test_binary_to_MVPoly_all_ones() {
+    fn test_binary_to_mvpoly_all_ones() {
         // Binary: input "11", eval 1
         let inputs = vec!["11".chars()];
         let evals = vec![ScalarField::one()];

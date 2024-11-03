@@ -50,13 +50,11 @@ impl Prover {
         self.g.terms().iter().fold(
             UniPoly::from_coefficients_vec(vec![]),
             |sum, (coeff, term)| {
-                let (coeff_eval, fixed_term) = self.evaluate_term(&term, &points);
-                let curr = match fixed_term {
-                    None => UniPoly::from_coefficients_vec(vec![(0, *coeff * coeff_eval)]),
-                    _ => UniPoly::from_coefficients_vec(vec![(
-                        fixed_term.unwrap().degree(),
-                        *coeff * coeff_eval,
-                    )]),
+                let (coeff_eval, fixed_term) = self.evaluate_term(term, &points);
+                let curr = if let Some(term) = fixed_term {
+                    UniPoly::from_coefficients_vec(vec![(term.degree(), *coeff * coeff_eval)])
+                } else {
+                    UniPoly::from_coefficients_vec(vec![(0, *coeff * coeff_eval)])
                 };
                 curr + sum
             },
@@ -77,8 +75,8 @@ impl Prover {
                         fixed_term = Some(SparseTerm::new(vec![(j, *power)]));
                         product
                     }
-                    j if j < self.r_vec.len() => self.r_vec[j].pow(&[*power as u64]) * product,
-                    _ => point[*var - self.r_vec.len()].pow(&[*power as u64]) * product,
+                    j if j < self.r_vec.len() => self.r_vec[j].pow([*power as u64]) * product,
+                    _ => point[*var - self.r_vec.len()].pow([*power as u64]) * product,
                 });
         (coeff, fixed_term)
     }
@@ -93,13 +91,14 @@ impl Prover {
         assert!(gi.degree() <= lookup_degree[0]);
 
         // middle rounds
-        for j in 1..self.g.num_vars() {
+        // for j in 1..self.g.num_vars() {
+        for degree in lookup_degree.iter().take(self.g.num_vars()).skip(1) {
             let r = self.get_r();
             expected_c = gi.evaluate(&r.unwrap());
             gi = self.gen_uni_polynomial(r);
             let new_c = gi.evaluate(&0u32.into()) + gi.evaluate(&1u32.into());
             assert_eq!(expected_c, new_c);
-            assert!(gi.degree() <= lookup_degree[j]);
+            assert!(gi.degree() <= *degree);
         }
         // final round
         let r = self.get_r();
@@ -121,13 +120,14 @@ impl Prover {
         assert!(gi.degree() <= lookup_degree[0]);
 
         // middle rounds
-        for j in 1..self.g.num_vars() {
+        //for j in 1..self.g.num_vars() {
+        for degree in lookup_degree.iter().take(self.g.num_vars()).skip(1) {
             let r = self.fs.get_r(gi.clone());
             expected_c = gi.evaluate(&r);
             gi = self.gen_uni_polynomial(Some(r));
             let new_c = gi.evaluate(&0u32.into()) + gi.evaluate(&1u32.into());
             assert_eq!(expected_c, new_c);
-            assert!(gi.degree() <= lookup_degree[j]);
+            assert!(gi.degree() <= *degree);
         }
         // final round
         let r = self.fs.get_r(gi.clone());
@@ -196,7 +196,6 @@ mod tests {
     //     // Call gen_uni_polynomial without providing r
     //     let uni_poly = prover.gen_uni_polynomial(None);
 
- 
     //     // Check basic properties of the result (e.g., degrees, terms)
     //     assert!(uni_poly.degree() >= 0); // Ensure polynomial is not empty
     // }

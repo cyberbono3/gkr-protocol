@@ -8,8 +8,8 @@ use rand::Rng;
 use super::error::GKRError;
 use super::fiat_shamir::FiatShamir;
 use super::sumcheck::Prover as SumCheckProver;
-use crate::graph::graph::{Graph, InputValue};
-use crate::graph::node::Node;
+use crate::core::graph::{Graph, InputValue};
+use crate::core::node::Node;
 use crate::poly::unique_univariate_line;
 
 #[derive(Debug, Clone)]

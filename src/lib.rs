@@ -13,8 +13,8 @@ mod tests {
     }
 }
 
+pub mod core;
 pub mod gkr;
-pub mod graph;
 pub mod poly;
 
 // TODO add tests and benches

@@ -26,9 +26,7 @@ impl Node {
 
     pub fn id(&self) -> usize {
         match *self {
-            Node::Add { id, .. } => id,
-            Node::Mult { id, .. } => id,
-            Node::Input { id } => id,
+            Node::Add { id, .. } | Node::Mult { id, .. } | Node::Input { id } => id,
         }
     }
 }
@@ -40,9 +38,10 @@ mod tests {
     #[test]
     fn test_new_input_node() {
         let input_node = Node::new_input(1);
-        match input_node {
-            Node::Input { id } => assert_eq!(id, 1),
-            _ => panic!("Expected Node::Input"),
+        if let Node::Input { id } = input_node {
+            assert_eq!(id, 1)
+        } else {
+            panic!("Expected Node::Input")
         }
     }
 
@@ -52,13 +51,12 @@ mod tests {
         let input2 = Node::new_input(2);
         let add_node = Node::new_add(3, input1.clone(), input2.clone());
 
-        match add_node {
-            Node::Add { id, inputs } => {
-                assert_eq!(id, 3);
-                assert_eq!(*inputs[0], input1);
-                assert_eq!(*inputs[1], input2);
-            }
-            _ => panic!("Expected Node::Add"),
+        if let Node::Add { id, inputs } = add_node {
+            assert_eq!(id, 3);
+            assert_eq!(*inputs[0], input1);
+            assert_eq!(*inputs[1], input2);
+        } else {
+            panic!("Expected Node::Add")
         }
     }
 
@@ -68,13 +66,12 @@ mod tests {
         let input2 = Node::new_input(2);
         let mult_node = Node::new_mult(4, input1.clone(), input2.clone());
 
-        match mult_node {
-            Node::Mult { id, inputs } => {
-                assert_eq!(id, 4);
-                assert_eq!(*inputs[0], input1);
-                assert_eq!(*inputs[1], input2);
-            }
-            _ => panic!("Expected Node::Mult"),
+        if let Node::Mult { id, inputs } = mult_node {
+            assert_eq!(id, 4);
+            assert_eq!(*inputs[0], input1);
+            assert_eq!(*inputs[1], input2);
+        } else {
+            panic!("Expected Node::Mult")
         }
     }
 }
