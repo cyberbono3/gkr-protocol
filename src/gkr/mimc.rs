@@ -16,10 +16,7 @@ pub struct Constants {
 pub fn generate_constants(n_rounds: usize) -> Constants {
     let cts = get_constants(SEED, n_rounds);
 
-    Constants {
-        n_rounds: n_rounds,
-        cts: cts,
-    }
+    Constants { n_rounds, cts }
 }
 
 pub fn get_constants(seed: &str, n_rounds: usize) -> Vec<ScalarField> {
@@ -77,20 +74,20 @@ impl Mimc7 {
         for i in 0..self.constants.n_rounds {
             let mut t: ScalarField;
             if i == 0 {
-                t = x_in.clone();
+                t = *x_in;
                 t.add_assign(k);
             } else {
-                t = h.clone();
+                t = h;
                 t.add_assign(k);
                 t.add_assign(&self.constants.cts[i]);
             }
-            let mut t2 = t.clone();
+            let mut t2 = t;
             t2 = t2.square();
-            let mut t7 = t2.clone();
+            let mut t7 = t2;
             t7 = t7.square();
             t7.mul_assign(t2);
             t7.mul_assign(t);
-            h = t7.clone();
+            h = t7;
         }
         h.add_assign(k);
         h
@@ -140,7 +137,7 @@ mod tests {
 
         let b3: ScalarField = ScalarField::from(3);
         let arr: Vec<ScalarField> = vec![b1, b2, b3];
-      
+
         let h1 = mimc7.multi_hash(arr, &ScalarField::zero());
         let expected = BigInt::parse_bytes(
             b"25f5a6429a9764564be3955e6f56b0b9143c571528fd30a80ae6c27dc8b4a40c",

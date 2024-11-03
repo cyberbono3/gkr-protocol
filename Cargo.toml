@@ -11,4 +11,3 @@ num-bigint = "0.4.6"
 rand = "0.8.5"
 thiserror = "1.0.64"
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
-

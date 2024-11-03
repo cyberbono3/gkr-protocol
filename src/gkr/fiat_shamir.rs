@@ -82,13 +82,13 @@ impl FiatShamir {
     }
     // Use hash-chaining
     pub fn get_r(&mut self, g: UniPoly) -> ScalarField {
-        let input = if self.r_vec.len() == 0 {
+        let input = if self.r_vec.is_empty() {
             Input::new_first(self.circuit_input.clone(), g)
         } else {
             Input::new_subsequent(
                 self.circuit_input.clone(),
                 self.r_vec.len(),
-                self.r_vec.last().unwrap().clone(),
+                *self.r_vec.last().unwrap(),
                 g,
             )
         };
