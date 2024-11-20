@@ -94,9 +94,9 @@ impl FiatShamir {
                 g,
             )
         };
-
-        let mut hasher = Poseidon::<Fr>::new_circom(self.n_rounds).unwrap();
-        let r = hasher.hash(&input.to_field_vec()).unwrap();
+        let field_vec = input.to_field_vec();
+        let mut hasher = Poseidon::<Fr>::new_circom(field_vec.len()).unwrap();
+        let r = hasher.hash(&field_vec).unwrap();
         self.r_vec.push(r);
         r
     }
