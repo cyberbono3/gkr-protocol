@@ -11,6 +11,7 @@ path = "src/lib.rs"     # Entry point for the library
 ark-bn254 = "0.4.0"
 ark-ff = "0.4.2"
 ark-poly = "0.4.2"
+light-poseidon = "0.2.0"
 num-bigint = "0.4.6"
 rand = "0.8.5"
 thiserror = "1.0.64"

@@ -253,14 +253,16 @@ impl TryFrom<Vec<&Node>> for Graph {
                             if !seen.contains(first_input) | !seen.contains(second_input) {
                                 return Err(GraphError::NodeExistence);
                             }
+
                             let first_level = graph.get_level(first_input);
                             let second_level = graph.get_level(second_input);
-                            if first_level.is_err() || second_level.is_err() {
-                                labelled = false;
-                            } else {
-                                // can safely unwrap as we checked for errors
-                                let idx = max(first_level.unwrap(), second_level.unwrap()) + 1;
+
+                            if let (Ok(first_level), Ok(second_level)) = (first_level, second_level)
+                            {
+                                let idx = max(first_level, second_level) + 1;
                                 graph.insert(idx, node);
+                            } else {
+                                labelled = false;
                             }
                         }
                     }
@@ -301,6 +303,21 @@ mod tests {
     }
 
     #[test]
+    fn test_disconnected_nodes() {
+        let input1 = Node::new_input(0);
+        let input2 = Node::new_input(1);
+        let mut graph = Graph::new();
+        graph.insert(0, &input1);
+        graph.insert(0, &input2);
+
+        assert_eq!(graph.get_level(&input1).unwrap(), 0);
+        assert_eq!(graph.get_level(&input2).unwrap(), 0);
+
+        // Check that both nodes are at level 0 and are not connected
+        assert_eq!(graph.nodes[&0].len(), 2, "Expected two nodes at level 0.");
+    }
+
+    #[test]
     fn test_insert_and_get_level() {
         let input_node = Node::new_input(0);
         let add_node = Node::new_add(1, input_node.clone(), input_node.clone());
@@ -336,6 +353,36 @@ mod tests {
         assert_eq!(graph.last_trace[&input1], ScalarField::from(3));
         assert_eq!(graph.last_trace[&input2], ScalarField::from(5));
         assert_eq!(graph.last_trace[&add_node], ScalarField::from(8)); // 3 + 5 = 8
+    }
+
+    #[test]
+    fn test_complex_graph_multiple_layers() {
+        let input1 = Node::new_input(0);
+        let input2 = Node::new_input(1);
+        let add_node = Node::new_add(2, input1.clone(), input2.clone());
+        let mult_node = Node::new_mult(3, add_node.clone(), input1.clone());
+
+        let mut graph = Graph::try_from(vec![&input1, &input2, &add_node, &mult_node]).unwrap();
+
+        // Perform a forward pass
+        let result = graph.forward(vec![
+            InputValue {
+                id: 0,
+                value: ScalarField::from(2),
+            },
+            InputValue {
+                id: 1,
+                value: ScalarField::from(3),
+            },
+        ]);
+
+        assert!(result.is_ok());
+
+        // Verify the results in last_trace
+        assert_eq!(graph.last_trace[&input1], ScalarField::from(2));
+        assert_eq!(graph.last_trace[&input2], ScalarField::from(3));
+        assert_eq!(graph.last_trace[&add_node], ScalarField::from(5)); // 2 + 3
+        assert_eq!(graph.last_trace[&mult_node], ScalarField::from(10)); // 5 * 2
     }
 
     #[test]
@@ -379,17 +426,23 @@ mod tests {
         assert_eq!(result, Err(GraphError::BadInputs));
     }
 
-    // #[test]
-    // fn test_graph_fails_if_node_not_found() {
-    //     let input1 = Node::new_input(0);
-    //     let input2 = Node::new_input(1);
-    //     let add_node = Node::new_add(2, input1.clone(), input2.clone());
-    //     let mult_node = Node::new_mult(3, add_node.clone(), input1.clone()); // Using add_node
+    #[test]
+    fn test_try_from_missing_input_node() {
+        // Define some nodes
+        let input_node = Node::new_input(1);
+        let missing_input_node = Node::new_input(2);
 
-    //     let result = Graph::try_from(vec![&input1, &input2, &add_node, &mult_node]);
-    //     assert!(result.is_err());
-    //     assert_eq!(result, Err(GraphError::NodeExistence)); // mult_node should fail due to missing add_node
-    // }
+        // Define a node with dependencies on other nodes
+        let add_node = Node::new_add(3, input_node.clone(), missing_input_node.clone());
+
+        // Attempt to create a Graph with a missing dependency node (i.e., `missing_input_node` is not in the list)
+        let nodes = vec![&input_node, &add_node];
+
+        // The result should be an error because `missing_input_node` is not included in the vector
+        let result = Graph::try_from(nodes);
+        assert!(result.is_err());
+        assert_eq!(result, Err(GraphError::NodeExistence));
+    }
 
     #[test]
     fn test_graph_init_add() {
@@ -640,155 +693,155 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_graph_wiring_mult() {
-    //     let first_input = Node::new_input(0);
-    //     let second_input = Node::new_input(1);
-    //     let mult_node = Node::new_mult(0, first_input.clone(), second_input.clone());
+    #[test]
+    fn test_graph_wiring_mult() {
+        let first_input = Node::new_input(0);
+        let second_input = Node::new_input(1);
+        let mult_node = Node::new_mult(0, first_input.clone(), second_input.clone());
 
-    //     let res = Graph::try_from(vec![&first_input, &second_input, &mult_node]);
-    //     assert!(res.is_ok());
-    //     let mut graph = res.unwrap();
-    //     let res = graph.forward(vec![
-    //         InputValue {
-    //             id: 0,
-    //             value: ScalarField::from(1),
-    //         },
-    //         InputValue {
-    //             id: 1,
-    //             value: ScalarField::from(2),
-    //         },
-    //     ]);
-    //     assert!(res.is_ok());
+        let res = Graph::try_from(vec![&first_input, &second_input, &mult_node]);
+        assert!(res.is_ok());
+        let mut graph = res.unwrap();
+        let res = graph.forward(vec![
+            InputValue {
+                id: 0,
+                value: ScalarField::from(1),
+            },
+            InputValue {
+                id: 1,
+                value: ScalarField::from(2),
+            },
+        ]);
+        assert!(res.is_ok());
 
-    //     let res = graph.get_multivariate_extension();
-    //     assert!(res.is_ok());
-    //     res.unwrap();
+        let res = graph.get_multivariate_extension();
+        assert!(res.is_ok());
+        res.unwrap();
 
-    //     assert_eq!(
-    //         graph.layers[0],
-    //         Layer::InputLayer {
-    //             k: 1,
-    //             input_ext: MultiPoly::from_coefficients_vec(
-    //                 1,
-    //                 vec![
-    //                     (ScalarField::from(1), SparseTerm::new(vec![])),
-    //                     (ScalarField::from(1), SparseTerm::new(vec![(0, 1)]))
-    //                 ],
-    //             )
-    //         }
-    //     );
+        assert_eq!(
+            graph.layers[0],
+            Layer::InputLayer {
+                k: 1,
+                input_ext: MultiPoly::from_coefficients_vec(
+                    1,
+                    vec![
+                        (ScalarField::from(1), SparseTerm::new(vec![])),
+                        (ScalarField::from(1), SparseTerm::new(vec![(0, 1)]))
+                    ],
+                )
+            }
+        );
 
-    //     let poly: MVPoly = graph.layers[0].evaluation_ext().into();
+        let poly: MVPoly = graph.layers[0].evaluation_ext().into();
 
-    //     assert_eq!(
-    //         graph.layers[1],
-    //         Layer::OutputLayer {
-    //             k: 0,
-    //             prev_k: 1,
-    //             add: MultiPoly::zero(),
-    //             mult: MultiPoly::from_coefficients_vec(
-    //                 3,
-    //                 vec![
-    //                     (ScalarField::from(1), SparseTerm::new(vec![(2, 1)])),
-    //                     (ScalarField::from(-1), SparseTerm::new(vec![(0, 1), (2, 1)])),
-    //                     (ScalarField::from(-1), SparseTerm::new(vec![(1, 1), (2, 1)])),
-    //                     (
-    //                         ScalarField::from(1),
-    //                         SparseTerm::new(vec![(0, 1), (1, 1), (2, 1)])
-    //                     )
-    //                 ],
-    //             ),
-    //             w_b: poly.shift_by_k(1).0,
-    //             w_c: poly.shift_by_k(2).0,
-    //             d: MultiPoly::from_coefficients_vec(
-    //                 1,
-    //                 vec![
-    //                     (ScalarField::from(-2), SparseTerm::new(vec![(0, 1)])),
-    //                     (ScalarField::from(2), SparseTerm::new(vec![]))
-    //                 ],
-    //             ),
-    //         }
-    //     );
-    // }
+        assert_eq!(
+            graph.layers[1],
+            Layer::OutputLayer {
+                k: 0,
+                prev_k: 1,
+                add: MultiPoly::zero(),
+                mult: MultiPoly::from_coefficients_vec(
+                    3,
+                    vec![
+                        (ScalarField::from(1), SparseTerm::new(vec![(2, 1)])),
+                        (ScalarField::from(-1), SparseTerm::new(vec![(0, 1), (2, 1)])),
+                        (ScalarField::from(-1), SparseTerm::new(vec![(1, 1), (2, 1)])),
+                        (
+                            ScalarField::from(1),
+                            SparseTerm::new(vec![(0, 1), (1, 1), (2, 1)])
+                        )
+                    ],
+                ),
+                w_b: poly.shift_by_k(1).0,
+                w_c: poly.shift_by_k(2).0,
+                d: MultiPoly::from_coefficients_vec(
+                    1,
+                    vec![
+                        (ScalarField::from(-2), SparseTerm::new(vec![(0, 1)])),
+                        (ScalarField::from(2), SparseTerm::new(vec![]))
+                    ],
+                ),
+            }
+        );
+    }
 
-    // #[test]
-    // fn test_graph_wiring_2_gate() {
-    //     let first_input = Node::new_input(0);
-    //     let second_input = Node::new_input(1);
-    //     let add_node = Node::new_add(0, first_input.clone(), second_input.clone());
-    //     let mult_node = Node::new_mult(1, first_input.clone(), second_input.clone());
+    #[test]
+    fn test_graph_wiring_2_gate() {
+        let first_input = Node::new_input(0);
+        let second_input = Node::new_input(1);
+        let add_node = Node::new_add(0, first_input.clone(), second_input.clone());
+        let mult_node = Node::new_mult(1, first_input.clone(), second_input.clone());
 
-    //     let res = Graph::try_from(vec![&first_input, &second_input, &add_node, &mult_node]);
-    //     assert!(res.is_ok());
-    //     let mut graph = res.unwrap();
-    //     let res = graph.forward(vec![
-    //         InputValue {
-    //             id: 0,
-    //             value: ScalarField::from(1),
-    //         },
-    //         InputValue {
-    //             id: 1,
-    //             value: ScalarField::from(2),
-    //         },
-    //     ]);
-    //     assert!(res.is_ok());
+        let res = Graph::try_from(vec![&first_input, &second_input, &add_node, &mult_node]);
+        assert!(res.is_ok());
+        let mut graph = res.unwrap();
+        let res = graph.forward(vec![
+            InputValue {
+                id: 0,
+                value: ScalarField::from(1),
+            },
+            InputValue {
+                id: 1,
+                value: ScalarField::from(2),
+            },
+        ]);
+        assert!(res.is_ok());
 
-    //     let res = graph.get_multivariate_extension();
-    //     assert!(res.is_ok());
+        let res = graph.get_multivariate_extension();
+        assert!(res.is_ok());
 
-    //     assert_eq!(
-    //         graph.layers[0],
-    //         Layer::InputLayer {
-    //             k: 1,
-    //             input_ext: MultiPoly::from_coefficients_vec(
-    //                 1,
-    //                 vec![
-    //                     (ScalarField::from(1), SparseTerm::new(vec![])),
-    //                     (ScalarField::from(1), SparseTerm::new(vec![(0, 1)]))
-    //                 ],
-    //             )
-    //         }
-    //     );
+        assert_eq!(
+            graph.layers[0],
+            Layer::InputLayer {
+                k: 1,
+                input_ext: MultiPoly::from_coefficients_vec(
+                    1,
+                    vec![
+                        (ScalarField::from(1), SparseTerm::new(vec![])),
+                        (ScalarField::from(1), SparseTerm::new(vec![(0, 1)]))
+                    ],
+                )
+            }
+        );
 
-    //     let poly: MVPoly = graph.layers[0].evaluation_ext().into();
-    //     assert_eq!(
-    //         graph.layers[1],
-    //         Layer::OutputLayer {
-    //             k: 1,
-    //             prev_k: 1,
-    //             mult: MultiPoly::from_coefficients_vec(
-    //                 3,
-    //                 vec![
-    //                     (ScalarField::from(1), SparseTerm::new(vec![(0, 1), (2, 1)])),
-    //                     (
-    //                         ScalarField::from(-1),
-    //                         SparseTerm::new(vec![(0, 1), (1, 1), (2, 1)])
-    //                     )
-    //                 ],
-    //             ),
-    //             add: MultiPoly::from_coefficients_vec(
-    //                 3,
-    //                 vec![
-    //                     (ScalarField::from(1), SparseTerm::new(vec![(2, 1)])),
-    //                     (ScalarField::from(-1), SparseTerm::new(vec![(0, 1), (2, 1)])),
-    //                     (ScalarField::from(-1), SparseTerm::new(vec![(1, 1), (2, 1)])),
-    //                     (
-    //                         ScalarField::from(1),
-    //                         SparseTerm::new(vec![(0, 1), (1, 1), (2, 1)])
-    //                     )
-    //                 ],
-    //             ),
-    //             w_b: poly.shift_by_k(1).0,
-    //             w_c: poly.shift_by_k(2).0,
-    //             d: MultiPoly::from_coefficients_vec(
-    //                 1,
-    //                 vec![
-    //                     (ScalarField::from(-1), SparseTerm::new(vec![(0, 1)])),
-    //                     (ScalarField::from(3), SparseTerm::new(vec![]))
-    //                 ],
-    //             ),
-    //         }
-    //     );
-    // }
+        let poly: MVPoly = graph.layers[0].evaluation_ext().into();
+        assert_eq!(
+            graph.layers[1],
+            Layer::OutputLayer {
+                k: 1,
+                prev_k: 1,
+                mult: MultiPoly::from_coefficients_vec(
+                    3,
+                    vec![
+                        (ScalarField::from(1), SparseTerm::new(vec![(0, 1), (2, 1)])),
+                        (
+                            ScalarField::from(-1),
+                            SparseTerm::new(vec![(0, 1), (1, 1), (2, 1)])
+                        )
+                    ],
+                ),
+                add: MultiPoly::from_coefficients_vec(
+                    3,
+                    vec![
+                        (ScalarField::from(1), SparseTerm::new(vec![(2, 1)])),
+                        (ScalarField::from(-1), SparseTerm::new(vec![(0, 1), (2, 1)])),
+                        (ScalarField::from(-1), SparseTerm::new(vec![(1, 1), (2, 1)])),
+                        (
+                            ScalarField::from(1),
+                            SparseTerm::new(vec![(0, 1), (1, 1), (2, 1)])
+                        )
+                    ],
+                ),
+                w_b: poly.shift_by_k(1).0,
+                w_c: poly.shift_by_k(2).0,
+                d: MultiPoly::from_coefficients_vec(
+                    1,
+                    vec![
+                        (ScalarField::from(-1), SparseTerm::new(vec![(0, 1)])),
+                        (ScalarField::from(3), SparseTerm::new(vec![]))
+                    ],
+                ),
+            }
+        );
+    }
 }
