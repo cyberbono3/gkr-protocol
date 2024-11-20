@@ -7,9 +7,3 @@ pub enum GKRError {
     #[error("graph error: {0}")]
     GraphError(#[from] GraphError),
 }
-
-// impl From<GraphError> for GKRError {
-//     fn from(err: GraphError) -> Self {
-//         Self::GraphError(err)
-//     }
-// }
