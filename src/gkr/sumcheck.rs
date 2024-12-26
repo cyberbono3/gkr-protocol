@@ -35,14 +35,14 @@ impl Prover {
         }
 
         let k = self.g.num_vars() - self.r_vec.len();
-        let mut result = UniPoly::from_coefficients_vec(vec![(0, 0u32.into())]);
 
-        for n in 0..(2u32.pow(k as u32 - 1)) {
-            let term = self.evaluate_gj(HyperCube::new(n as usize, k).0.clone());
-            result = result + term;
-        }
-
-        result
+        (0..(2u32.pow(k as u32 - 1))).fold(
+            UniPoly::from_coefficients_vec(vec![(0, 0u32.into())]),
+            |acc, n| {
+                let term = self.evaluate_gj(HyperCube::new(n as usize, k).0.clone());
+                acc + term
+            },
+        )
     }
 
     // Evaluates gj over a vector permutation of points, folding all evaluated terms together into one univariate polynomial
@@ -186,37 +186,37 @@ mod tests {
         MultiPoly::from_coefficients_vec(num_vars, terms)
     }
 
-    // TODO revise test
-    // #[test]
-    // fn test_gen_uni_polynomial_no_r() {
-    //     // Create a sample prover with a multivariate polynomial with 2 variables
-    //     let g = sample_multivariate_poly(2);
-    //     let mut prover = Prover::new(&g);
+    #[test]
+    fn test_gen_uni_polynomial_no_r() {
+        // Create a sample prover with a multivariate polynomial with 2 variables
+        let g = sample_multivariate_poly(2);
+        let mut prover = Prover::new(&g);
 
-    //     // Call gen_uni_polynomial without providing r
-    //     let uni_poly = prover.gen_uni_polynomial(None);
+        // Call gen_uni_polynomial without providing r
+        let uni_poly = prover.gen_uni_polynomial(None);
 
-    //     // Check basic properties of the result (e.g., degrees, terms)
-    //     assert!(uni_poly.degree() >= 0); // Ensure polynomial is not empty
-    // }
+        // Check basic properties of the result (e.g., degrees, terms)
+        assert_eq!(prover.r_vec.len(), 0);
+        assert!(uni_poly.degree() > 0); // Ensure polynomial is not empty
+    }
 
-    // #[test]
-    // fn test_gen_uni_polynomial_with_r() {
-    //     // Create a sample prover with a multivariate polynomial with 3 variables
-    //     let g = sample_multivariate_poly(3);
-    //     let mut prover = Prover::new(&g);
+    #[test]
+    fn test_gen_uni_polynomial_with_r() {
+        // Create a sample prover with a multivariate polynomial with 3 variables
+        let g = sample_multivariate_poly(3);
+        let mut prover = Prover::new(&g);
 
-    //     // Provide a specific r value
-    //     let r = sample_scalar(5);
-    //     let uni_poly = prover.gen_uni_polynomial(Some(r));
+        // Provide a specific r value
+        let r = sample_scalar(5);
+        let uni_poly = prover.gen_uni_polynomial(Some(r));
 
-    //     // Check if r was added to r_vec
-    //     assert_eq!(prover.r_vec.len(), 1);
-    //     assert_eq!(prover.r_vec[0], r);
+        // Check if r was added to r_vec
+        assert_eq!(prover.r_vec.len(), 1);
+        assert_eq!(prover.r_vec[0], r);
 
-    //     // Check basic properties of the result (e.g., degrees, terms)
-    //     assert!(uni_poly.degree() >= 0); // Ensure polynomial is not empty
-    // }
+        // Check basic properties of the result (e.g., degrees, terms)
+        assert!(uni_poly.degree() > 0); // Ensure polynomial is not empty
+    }
 
     #[test]
     fn test_gen_uni_polynomial_multiple_r() {
