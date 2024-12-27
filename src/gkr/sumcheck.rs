@@ -1,12 +1,14 @@
-use super::fiat_shamir::FiatShamir;
-use crate::poly::HyperCube;
-
 use ark_bn254::Fr as ScalarField;
 use ark_ff::Field;
-use ark_poly::polynomial::multivariate::{SparsePolynomial, SparseTerm, Term};
-use ark_poly::polynomial::univariate::SparsePolynomial as UniSparsePolynomial;
-use ark_poly::{DenseMVPolynomial, Polynomial};
+use ark_poly::polynomial::{
+    multivariate::{SparsePolynomial, SparseTerm, Term},
+    univariate::SparsePolynomial as UniSparsePolynomial,
+    DenseMVPolynomial, Polynomial,
+};
 use rand::Rng;
+
+use super::fiat_shamir::FiatShamir;
+use crate::poly::HyperCube;
 
 pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;
 pub type UniPoly = UniSparsePolynomial<ScalarField>;

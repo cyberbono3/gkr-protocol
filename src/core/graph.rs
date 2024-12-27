@@ -1,12 +1,12 @@
-use std::cmp::max;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::{
+    cmp::max,
+    collections::{BTreeMap, HashMap, HashSet},
+};
 
 use ark_bn254::Fr as ScalarField;
 use ark_ff::Zero;
 
-use super::error::GraphError;
-use super::layer::Layer;
-use super::node::Node;
+use super::{error::GraphError, layer::Layer, node::Node};
 use crate::poly::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
@@ -278,8 +278,10 @@ impl TryFrom<Vec<&Node>> for Graph {
 mod tests {
     use super::*;
 
-    use ark_poly::polynomial::multivariate::{SparseTerm, Term};
-    use ark_poly::DenseMVPolynomial;
+    use ark_poly::{
+        polynomial::multivariate::{SparseTerm, Term},
+        DenseMVPolynomial,
+    };
 
     #[test]
     fn test_add_nodes_to_graph() {

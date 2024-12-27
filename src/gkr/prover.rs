@@ -5,12 +5,14 @@ use ark_ff::Zero;
 use ark_poly::Polynomial;
 use rand::Rng;
 
-use super::error::GKRError;
-use super::fiat_shamir::FiatShamir;
-use super::sumcheck::Prover as SumCheckProver;
-use crate::core::graph::{Graph, InputValue};
-use crate::core::node::Node;
-use crate::poly::unique_univariate_line;
+use super::{error::GKRError, fiat_shamir::FiatShamir, sumcheck::Prover as SumCheckProver};
+use crate::{
+    core::{
+        graph::{Graph, InputValue},
+        node::Node,
+    },
+    poly::unique_univariate_line,
+};
 
 #[derive(Debug, Clone)]
 pub struct Prover {

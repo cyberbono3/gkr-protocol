@@ -1,13 +1,19 @@
 use core::str::Chars;
-use std::cmp::max;
-use std::ops::{Add, Mul};
+use std::{
+    cmp::max,
+    ops::{Add, Mul},
+};
 
 use ark_ff::Zero;
 
 use ark_bn254::Fr as ScalarField;
-use ark_poly::polynomial::multivariate::{SparsePolynomial, SparseTerm, Term};
-use ark_poly::polynomial::univariate::SparsePolynomial as UniSparsePolynomial;
-use ark_poly::DenseMVPolynomial;
+use ark_poly::{
+    polynomial::{
+        multivariate::{SparsePolynomial, SparseTerm, Term},
+        univariate::SparsePolynomial as UniSparsePolynomial,
+    },
+    DenseMVPolynomial,
+};
 use thiserror::Error;
 
 pub type MultiPoly = SparsePolynomial<ScalarField, SparseTerm>;

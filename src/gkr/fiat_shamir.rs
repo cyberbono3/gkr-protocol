@@ -1,10 +1,9 @@
-use crate::poly::UniPoly;
+use std::ops::Deref;
 
 use ark_bn254::Fr as ScalarField;
-use ark_bn254::Fr;
 use light_poseidon::{Poseidon, PoseidonHasher};
 
-use std::ops::Deref;
+use crate::poly::UniPoly;
 
 #[derive(Hash)]
 enum Input {
@@ -95,7 +94,7 @@ impl FiatShamir {
             )
         };
         let field_vec = input.to_field_vec();
-        let mut hasher = Poseidon::<Fr>::new_circom(field_vec.len()).unwrap();
+        let mut hasher = Poseidon::<ScalarField>::new_circom(field_vec.len()).unwrap();
         let r = hasher.hash(&field_vec).unwrap();
         self.r_vec.push(r);
         r
