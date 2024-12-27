@@ -51,23 +51,37 @@ impl Graph {
         self.nodes.len()
     }
 
-    fn handle_inputs(
-        op: Node,
-        trace: &mut HashMap<Node, ScalarField>,
-        inputs: &[Box<Node>],
-    ) -> Result<(), GraphError> {
-        if let (Some(first_input), Some(second_input)) = (inputs.first(), inputs.get(1)) {
-            let first_input = trace
-                .get(first_input)
-                .ok_or(GraphError::TraceNodeExistence)?;
-            let second_input = trace
-                .get(second_input)
-                .ok_or(GraphError::TraceNodeExistence)?;
-            trace.insert(op, first_input + second_input);
-            Ok(())
-        } else {
-            Err(GraphError::NonInput)
+    fn handle_inputs(op: &Node, trace: &mut HashMap<Node, ScalarField>) -> Result<(), GraphError> {
+        match op {
+            Node::Add { inputs, .. } => {
+                // We expect exactly 2 inputs
+                if let (Some(left_node), Some(right_node)) = (inputs.first(), inputs.get(1)) {
+                    let left_val = *trace.get(left_node).ok_or(GraphError::TraceNodeExistence)?;
+                    let right_val = *trace
+                        .get(right_node)
+                        .ok_or(GraphError::TraceNodeExistence)?;
+                    trace.insert(op.clone(), left_val + right_val);
+                } else {
+                    return Err(GraphError::NonInput);
+                }
+            }
+            Node::Mult { inputs, .. } => {
+                if let (Some(left_node), Some(right_node)) = (inputs.first(), inputs.get(1)) {
+                    let left_val = *trace.get(left_node).ok_or(GraphError::TraceNodeExistence)?;
+                    let right_val = *trace
+                        .get(right_node)
+                        .ok_or(GraphError::TraceNodeExistence)?;
+                    trace.insert(op.clone(), left_val * right_val);
+                } else {
+                    return Err(GraphError::NonInput);
+                }
+            }
+            Node::Input { .. } => {
+                // Should not appear in levels > 0
+                return Err(GraphError::NonInput);
+            }
         }
+        Ok(())
     }
 
     /// forward pass for a graph
@@ -94,9 +108,7 @@ impl Graph {
 
         for i in 1..self.num_levels() {
             for op in &self.nodes[&i] {
-                if let Node::Add { inputs, .. } | Node::Mult { inputs, .. } = op {
-                    Self::handle_inputs(op.clone(), &mut trace, inputs.as_slice())?
-                }
+                Self::handle_inputs(op, &mut trace)?
             }
         }
         self.last_trace = trace;
@@ -462,88 +474,88 @@ mod tests {
         assert_eq!(graph.layers.len(), 2); // Assuming one input layer and one output layer
     }
 
-    // #[test]
-    // fn test_graph_wiring_multiple_gates() {
-    //     let input1 = Node::new_input(0);
-    //     let input2 = Node::new_input(1);
-    //     let add_node = Node::new_add(2, input1.clone(), input2.clone());
-    //     let mult_node = Node::new_mult(3, input1.clone(), add_node.clone()); // Mult using input1 and add_node
+    #[test]
+    fn test_graph_wiring_multiple_gates() {
+        let input1 = Node::new_input(0);
+        let input2 = Node::new_input(1);
+        let add_node = Node::new_add(2, input1.clone(), input2.clone());
+        let mult_node = Node::new_mult(3, input1.clone(), add_node.clone()); // Mult using input1 and add_node
 
-    //     let res = Graph::try_from(vec![&input1, &input2, &add_node, &mult_node]);
-    //     assert!(res.is_ok());
-    //     let mut graph = res.unwrap();
+        let res = Graph::try_from(vec![&input1, &input2, &add_node, &mult_node]);
+        assert!(res.is_ok());
+        let mut graph = res.unwrap();
 
-    //     let result = graph.forward(vec![
-    //         InputValue {
-    //             id: 0,
-    //             value: ScalarField::from(4),
-    //         },
-    //         InputValue {
-    //             id: 1,
-    //             value: ScalarField::from(2),
-    //         },
-    //     ]);
-    //     assert!(result.is_ok());
+        let result = graph.forward(vec![
+            InputValue {
+                id: 0,
+                value: ScalarField::from(4),
+            },
+            InputValue {
+                id: 1,
+                value: ScalarField::from(2),
+            },
+        ]);
+        assert!(result.is_ok());
 
-    //     assert_eq!(graph.last_trace[&add_node], ScalarField::from(6)); // 4 + 2
-    //     assert_eq!(graph.last_trace[&mult_node], ScalarField::from(24)); // 4 * 6
-    // }
+        assert_eq!(graph.last_trace[&add_node], ScalarField::from(6)); // 4 + 2
+        assert_eq!(graph.last_trace[&mult_node], ScalarField::from(24)); // 4 * 6
+    }
 
-    // #[test]
-    // fn test_graph_init_mult() {
-    //     let first_input = Node::new_input(0);
-    //     let second_input = Node::new_input(1);
-    //     let third_input = Node::new_input(2);
-    //     let mult_node = Node::new_mult(0, first_input.clone(), second_input.clone());
+    #[test]
+    fn test_graph_init_mult() {
+        let first_input = Node::new_input(0);
+        let second_input = Node::new_input(1);
+        let third_input = Node::new_input(2);
+        let mult_node = Node::new_mult(0, first_input.clone(), second_input.clone());
 
-    //     let res = Graph::try_from(vec![&first_input, &second_input, &mult_node]);
-    //     assert!(res.is_ok());
-    //     let mut graph = res.unwrap();
+        let res = Graph::try_from(vec![&first_input, &second_input, &mult_node]);
+        assert!(res.is_ok());
+        let mut graph = res.unwrap();
 
-    //     assert_eq!(graph.get_level(&first_input).unwrap(), 0);
-    //     assert_eq!(graph.get_level(&second_input).unwrap(), 0);
-    //     assert_eq!(graph.get_level(&mult_node).unwrap(), 1);
-    //     assert_eq!(graph.nodes[&0].len(), 2);
+        assert_eq!(graph.get_level(&first_input).unwrap(), 0);
+        assert_eq!(graph.get_level(&second_input).unwrap(), 0);
+        assert_eq!(graph.get_level(&mult_node).unwrap(), 1);
+        assert_eq!(graph.nodes[&0].len(), 2);
 
-    //     assert_eq!(
-    //         graph.get_level(&third_input),
-    //         Err(GraphError::NodeExistence)
-    //     );
+        assert_eq!(
+            graph.get_level(&third_input),
+            Err(GraphError::NodeExistence)
+        );
 
-    //     let res = graph.forward(vec![
-    //         InputValue {
-    //             id: 0,
-    //             value: ScalarField::from(1),
-    //         },
-    //         InputValue {
-    //             id: 1,
-    //             value: ScalarField::from(2),
-    //         },
-    //     ]);
-    //     assert!(res.is_ok());
+        let res = graph.forward(vec![
+            InputValue {
+                id: 0,
+                value: ScalarField::from(1),
+            },
+            InputValue {
+                id: 1,
+                value: ScalarField::from(2),
+            },
+        ]);
+        assert!(res.is_ok());
 
-    //     assert_eq!(graph.last_trace[&first_input], ScalarField::from(1));
-    //     assert_eq!(graph.last_trace[&second_input], ScalarField::from(2));
-    //     assert_eq!(graph.last_trace[&mult_node], ScalarField::from(2));
+        assert_eq!(graph.last_trace[&first_input], ScalarField::from(1));
+        assert_eq!(graph.last_trace[&second_input], ScalarField::from(2));
+        assert_eq!(graph.last_trace[&mult_node], ScalarField::from(3));
 
-    //     let res = graph.forward(vec![InputValue {
-    //         id: 0,
-    //         value: ScalarField::from(1),
-    //     }]);
-    //     assert_eq!(res, Err(GraphError::BadInputs));
+        let res = graph.forward(vec![InputValue {
+            id: 0,
+            value: ScalarField::from(1),
+        }]);
+        assert_eq!(res, Err(GraphError::BadInputs));
 
-    //     let res = graph.forward(vec![
-    //         InputValue {
-    //             id: 0,
-    //             value: ScalarField::from(1),
-    //         },
-    //         InputValue {
-    //             id: 22,
-    //             value: ScalarField::from(2),
-    //         },
-    //     ]);
-    //     assert_eq!(res, Err(GraphError::BadInputs));
-    // }
+        let res = graph.forward(vec![
+            InputValue {
+                id: 0,
+                value: ScalarField::from(1),
+            },
+            InputValue {
+                id: 22,
+                value: ScalarField::from(2),
+            },
+        ]);
+        assert_eq!(res, Err(GraphError::BadInputs));
+    }
 
     #[test]
     fn test_fails_if_not_in_init() {
