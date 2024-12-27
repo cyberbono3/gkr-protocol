@@ -1,8 +1,9 @@
-use super::mimc::Mimc7;
-use crate::poly::UniPoly;
-use ark_bn254::Fr as ScalarField;
-use ark_ff::Zero;
 use std::ops::Deref;
+
+use ark_bn254::Fr as ScalarField;
+use light_poseidon::{Poseidon, PoseidonHasher};
+
+use crate::poly::UniPoly;
 
 #[derive(Hash)]
 enum Input {
@@ -65,11 +66,11 @@ impl Input {
 }
 
 // Simulates memory of a single prover instance
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct FiatShamir {
     pub r_vec: Vec<ScalarField>,
     pub circuit_input: Vec<ScalarField>,
-    pub hash_func: Mimc7,
+    pub n_rounds: usize,
 }
 
 impl FiatShamir {
@@ -77,7 +78,7 @@ impl FiatShamir {
         Self {
             r_vec: vec![],
             circuit_input: input,
-            hash_func: Mimc7::new(n_rounds),
+            n_rounds,
         }
     }
     // Use hash-chaining
@@ -92,9 +93,9 @@ impl FiatShamir {
                 g,
             )
         };
-        let r = self
-            .hash_func
-            .multi_hash(input.to_field_vec(), &ScalarField::zero());
+        let field_vec = input.to_field_vec();
+        let mut hasher = Poseidon::<ScalarField>::new_circom(field_vec.len()).unwrap();
+        let r = hasher.hash(&field_vec).unwrap();
         self.r_vec.push(r);
         r
     }
@@ -103,6 +104,7 @@ impl FiatShamir {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_ff::Zero;
 
     #[test]
     pub fn test_input_to_field_vec() {

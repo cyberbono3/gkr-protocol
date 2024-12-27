@@ -366,6 +366,7 @@ dependencies = [
  "ark-ff",
  "ark-poly",
  "criterion",
+ "light-poseidon",
  "num-bigint",
  "rand",
  "thiserror",
@@ -438,6 +439,18 @@ name = "libc"
 version = "0.2.158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
+
+[[package]]
+name = "light-poseidon"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c9a85a9752c549ceb7578064b4ed891179d20acd85f27318573b64d2d7ee7ee"
+dependencies = [
+ "ark-bn254",
+ "ark-ff",
+ "num-bigint",
+ "thiserror",
+]
 
 [[package]]
 name = "log"
