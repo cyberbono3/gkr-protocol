@@ -19,6 +19,6 @@ tiny-keccak = { version = "2.0.2", features = ["keccak"] }
 [dev-dependencies]
 criterion = "0.5"
 
-[[bench]]
-name = "prover"
-harness = false
+# [[bench]]
+# name = "prover"
+# harness = false

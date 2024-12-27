@@ -536,7 +536,7 @@ mod tests {
 
         assert_eq!(graph.last_trace[&first_input], ScalarField::from(1));
         assert_eq!(graph.last_trace[&second_input], ScalarField::from(2));
-        assert_eq!(graph.last_trace[&mult_node], ScalarField::from(3));
+        assert_eq!(graph.last_trace[&mult_node], ScalarField::from(2));
 
         let res = graph.forward(vec![InputValue {
             id: 0,
