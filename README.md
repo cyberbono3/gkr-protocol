@@ -4,6 +4,10 @@
 
 The GKR is an interactive proof protocol widely used in ZK/Validity proofs.
 
+> [!Warning]
+> This is a research project and hasn't been audited.
+> Use at your own risk.
+
 ## Overfiew
 
 1. Prover P and Verifier V both agree on input `x` (element of finite field F) and some fan-2 arithmetic circuit `C` over `F`, where `x` is an input, and `y` is an output. 
