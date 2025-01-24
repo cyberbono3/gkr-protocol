@@ -5,7 +5,7 @@
 The GKR is an interactive proof protocol widely used in ZK/Validity proofs.
 
 > [!Warning]
-> This is a research project and hasn't been audited.
+> This is a side project and hasn't been audited.
 > Use at your own risk.
 
 ## Overfiew
